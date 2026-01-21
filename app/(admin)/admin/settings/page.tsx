@@ -1,11 +1,16 @@
+import EmbedConfigurator from "@/components/admin/embed/EmbedConfigurator";
+
 export default function SettingsPage() {
     return (
         <div className="p-8 space-y-8">
             <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-heading font-bold text-foreground">Configuración</h2>
-                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold hover:bg-primary/90">
-                    Guardar Cambios
-                </button>
+                <div className="flex items-center gap-3">
+                    <EmbedConfigurator />
+                    <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold hover:bg-primary/90">
+                        Guardar Cambios
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
