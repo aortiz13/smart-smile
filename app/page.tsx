@@ -1,78 +1,109 @@
 import Link from "next/link";
 import WidgetContainer from "@/components/widget/WidgetContainer";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen font-sans bg-zinc-50 dark:bg-black text-black dark:text-white">
+    <div className="flex flex-col min-h-screen font-sans bg-background text-foreground selection:bg-primary/20">
       {/* Header */}
-      <header className="w-full flex justify-between items-center py-6 px-8 border-b border-zinc-200 dark:border-zinc-800">
-        <h1 className="text-2xl font-bold tracking-tight">Smile Forward</h1>
-        <div className="flex gap-4">
-          <Link 
-            href="/admin/dashboard" 
-            className="px-4 py-2 text-sm font-medium bg-zinc-900 text-white dark:bg-white dark:text-black rounded-md hover:opacity-90 transition-opacity"
-          >
-            Admin Panel
-          </Link>
-          <Link 
-            href="/widget" 
-            className="px-4 py-2 text-sm font-medium border border-zinc-300 dark:border-zinc-700 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
-          >
-            Standalone Widget
-          </Link>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center justify-between px-8">
+          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+            <span className="text-primary text-2xl">✨</span> Smile Forward
+          </h1>
+          <div className="flex gap-4">
+            <Link href="/admin/dashboard">
+              <Button variant="ghost" size="sm">Admin Panel</Button>
+            </Link>
+            <Link href="/widget">
+              <Button variant="outline" size="sm">Standalone Widget</Button>
+            </Link>
+          </div>
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-start p-8 md:p-12 gap-12">
+      <main className="flex-1 flex flex-col items-center justify-start p-8 md:p-24 gap-16">
         {/* Intro Section */}
-        <section className="text-center max-w-2xl space-y-4">
-          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
-            Transform Your Smile with AI
+        <section className="text-center max-w-3xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+          <Badge variant="secondary" className="mb-4">AI-Powered Dentistry</Badge>
+          <h2 className="text-5xl md:text-7xl font-extrabold tracking-tight bg-gradient-to-br from-primary via-teal-500 to-cyan-600 bg-clip-text text-transparent pb-2">
+            Perfect Smiles <br /> Start Here
           </h2>
-          <p className="text-lg text-zinc-600 dark:text-zinc-400">
-            Smart Smile Analysis & Simulation. Start the journey to your perfect smile today.
-            <br className="hidden md:block"/>
-            Upload a photo below to see the magic.
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Experience the future of dental aesthetics. Our advanced AI analyzes your facial structure to design your ideal smile in seconds.
           </p>
+          <div className="flex justify-center gap-4 pt-4">
+            <Button size="lg" className="rounded-full px-8">Get Started</Button>
+            <Button size="lg" variant="outline" className="rounded-full px-8">Learn More</Button>
+          </div>
         </section>
 
         {/* Demo Widget Section */}
-        <section className="w-full max-w-3xl border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-2xl bg-white dark:bg-zinc-900">
-           <div className="p-4 bg-zinc-100 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-              <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest">Live Demo Preview</span>
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                <div className="w-3 h-3 rounded-full bg-green-400"></div>
+        <section className="w-full max-w-4xl relative group">
+          {/* Background Glow */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary to-cyan-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 animate-pulse"></div>
+
+          <Card className="relative border-border/50 shadow-2xl overflow-hidden bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm">
+            <div className="absolute inset-0 bg-grid-zinc-900/[0.02] bg-[bottom_1px_center] dark:bg-grid-zinc-400/[0.05]" style={{ maskImage: 'linear-gradient(to bottom, transparent, black)' }}></div>
+
+            <div className="relative p-6 bg-muted/30 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-400/80"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-400/80"></div>
+                <div className="w-3 h-3 rounded-full bg-green-400/80"></div>
+                <span className="ml-2 text-xs font-mono text-muted-foreground uppercase tracking-widest pl-2 border-l">Live Demo</span>
               </div>
-           </div>
-           
-           {/* Widget Component */}
-           <div className="p-0">
-             <WidgetContainer />
-           </div>
+            </div>
+
+            {/* Widget Component */}
+            <div className="p-0 bg-background/50">
+              <WidgetContainer />
+            </div>
+          </Card>
         </section>
 
         {/* Features Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl mt-12">
-            <div className="p-6 bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-100 dark:border-zinc-800">
-                <h3 className="font-bold text-xl mb-2">Instant Analysis</h3>
-                <p className="text-zinc-500 text-sm">Advanced computer vision checks your facial structure and smile characteristics in seconds.</p>
-            </div>
-            <div className="p-6 bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-100 dark:border-zinc-800">
-                <h3 className="font-bold text-xl mb-2">AI Simulation</h3>
-                <p className="text-zinc-500 text-sm">See your future smile generated by state-of-the-art Generative AI models.</p>
-            </div>
-            <div className="p-6 bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-100 dark:border-zinc-800">
-                <h3 className="font-bold text-xl mb-2">Seamless Booking</h3>
-                <p className="text-zinc-500 text-sm">Connect directly with dental professionals to turn your simulation into reality.</p>
-            </div>
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl mt-12">
+          <Card className="bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 border-input/50 transition-all hover:shadow-lg hover:-translate-y-1">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                ⚡️ Instant Analysis
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-base">
+                Advanced computer vision checks your facial structure, landmarks, and smile characteristics in seconds.
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 border-input/50 transition-all hover:shadow-lg hover:-translate-y-1">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                🪄 AI Simulation
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-base">
+                See your future smile generated by state-of-the-art Generative AI models tailored to your refined aesthetic.
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 border-input/50 transition-all hover:shadow-lg hover:-translate-y-1">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                📅 Seamless Booking
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-base">
+                Connect directly with verified dental professionals to turn your digital simulation into reality.
+              </CardDescription>
+            </CardContent>
+          </Card>
         </section>
       </main>
 
-      <footer className="w-full py-8 border-t border-zinc-200 dark:border-zinc-800 text-center text-sm text-zinc-500">
-        &copy; {new Date().getFullYear()} Smile Forward. Powered by Google Vertex AI & Supabase.
-      </footer>
-    </div>
-  );
-}
