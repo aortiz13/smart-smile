@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -26,10 +26,79 @@ interface LeadDetailModalProps {
 
 export function LeadDetailModal({ lead, open, onOpenChange, onLeadUpdated }: LeadDetailModalProps) {
     const [loadingAction, setLoadingAction] = useState(false);
+    const [generatingVideo, setGeneratingVideo] = useState(false);
+    const [videoGen, setVideoGen] = useState<any>(null);
+    const [pollingCount, setPollingCount] = useState(0);
 
     if (!lead) return null;
 
     const supabase = createClient();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+
+    // Fetch existing generations (useEffect)
+    useEffect(() => {
+        if (lead && open) {
+            const video = lead.generations?.find((g: any) => g.type === 'video' && g.status === 'completed');
+            const pendingVideo = lead.generations?.find((g: any) => g.type === 'video' && g.status === 'pending');
+
+            if (video) {
+                setVideoGen(video);
+            } else if (pendingVideo) {
+                setVideoGen(pendingVideo);
+                setGeneratingVideo(true);
+            } else {
+                setVideoGen(null);
+                setGeneratingVideo(false);
+            }
+        }
+    }, [lead, open]);
+
+    // Polling logic for pending video
+    useEffect(() => {
+        let interval: any;
+        if (generatingVideo && videoGen?.id && videoGen.status === 'pending') {
+            interval = setInterval(async () => {
+                try {
+                    const { data, error } = await supabase.functions.invoke('check-video', {
+                        body: { generation_id: videoGen.id }
+                    });
+
+                    if (error) throw error;
+
+                    if (data.status === 'completed') {
+                        setVideoGen(data);
+                        setGeneratingVideo(false);
+                        toast.success("¡Vídeo generado con éxito!");
+                        if (onLeadUpdated) onLeadUpdated();
+                    } else if (data.status === 'error') {
+                        setGeneratingVideo(false);
+                        toast.error("Error al generar vídeo");
+                    }
+                } catch (err) {
+                    console.error("Polling error:", err);
+                }
+            }, 5000);
+        }
+        return () => clearInterval(interval);
+    }, [generatingVideo, videoGen?.id]);
+
+    const handleGenerateVideo = async () => {
+        if (!lead.id) return;
+        setGeneratingVideo(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('generate-video', {
+                body: { lead_id: lead.id }
+            });
+
+            if (error) throw error;
+
+            setVideoGen({ id: data.generation_id, status: 'pending' });
+            toast.info("Generación de vídeo iniciada...", { description: "Esto puede tardar hasta 1 minuto." });
+        } catch (error: any) {
+            setGeneratingVideo(false);
+            toast.error("Error al iniciar generación: " + error.message);
+        }
+    };
 
     const handleMarkContacted = async () => {
         setLoadingAction(true);
@@ -194,6 +263,33 @@ export function LeadDetailModal({ lead, open, onOpenChange, onLeadUpdated }: Lea
                                     <Share2 className="w-4 h-4 mr-2" />
                                     Contactar por WhatsApp
                                 </Button>
+
+                                {generation && (
+                                    <Button
+                                        className="w-full bg-primary font-bold"
+                                        size="lg"
+                                        onClick={handleGenerateVideo}
+                                        disabled={generatingVideo || (videoGen && videoGen.status === 'completed')}
+                                    >
+                                        {generatingVideo ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                Generando Vídeo...
+                                            </>
+                                        ) : videoGen && videoGen.status === 'completed' ? (
+                                            <>
+                                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                Vídeo Generado
+                                            </>
+                                        ) : (
+                                            <>
+                                                <MonitorPlay className="w-4 h-4 mr-2" />
+                                                Generar Vídeo Smile
+                                            </>
+                                        )}
+                                    </Button>
+                                )}
+
                                 <div className="grid grid-cols-2 gap-3">
                                     <Button
                                         variant="outline"
@@ -245,6 +341,31 @@ export function LeadDetailModal({ lead, open, onOpenChange, onLeadUpdated }: Lea
                             <div className="text-center text-muted-foreground p-8">
                                 <MonitorPlay className="w-16 h-16 mx-auto mb-4 opacity-20" />
                                 <p>Sin visualización disponible</p>
+                            </div>
+                        )}
+
+                        {/* Video Layer (Overlay if exists) */}
+                        {videoGen && videoGen.status === 'completed' && (
+                            <div className="absolute inset-0 bg-zinc-950 z-20 flex items-center justify-center p-4">
+                                <div className="relative h-full w-full max-w-[500px] aspect-[9/16] rounded-xl overflow-hidden shadow-2xl border border-white/10">
+                                    <video
+                                        src={`${supabaseUrl}/storage/v1/object/public/generations/${videoGen.output_path}`}
+                                        className="w-full h-full object-cover"
+                                        controls
+                                        autoPlay
+                                        loop
+                                    />
+                                    <div className="absolute top-4 right-4 z-30">
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            className="h-8 rounded-full bg-black/50 backdrop-blur-md border-white/10 text-xs"
+                                            onClick={() => setVideoGen(null)}
+                                        >
+                                            Cerrar Video
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
