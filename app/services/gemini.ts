@@ -71,7 +71,7 @@ const safeParseJSON = (text: string) => {
 
 // Gatekeeper
 export const validateImageStrict = async (base64Image: string): Promise<{ isValid: boolean; reason: string }> => {
-    console.log("[Gemini] validateImageStrict called. Image length:", base64Image?.length);
+    console.log("[Gemini] ENTRY: validateImageStrict called. Image length:", base64Image?.length);
     if (!base64Image) {
         return { isValid: false, reason: "Error: Imagen vacía o corrupta." };
     }
@@ -153,7 +153,7 @@ export const validateImageStrict = async (base64Image: string): Promise<{ isVali
 
 // Analysis
 export const analyzeImageAndGeneratePrompts = async (base64Image: string): Promise<AnalysisResponse> => {
-    console.log("[Gemini] analyzeImageAndGeneratePrompts called.");
+    console.log("[Gemini] ENTRY: analyzeImageAndGeneratePrompts called.");
     try {
         const apiKey = process.env.API_KEY;
         if (!apiKey) {

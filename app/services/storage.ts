@@ -8,6 +8,7 @@ import { SmileSession } from '@/types/gemini';
  * Note: Accepting FormData is necessary for Server Actions handling file uploads.
  */
 export const uploadScan = async (formData: FormData): Promise<string> => {
+    console.log("[Storage] ENTRY: uploadScan called.");
     try {
         const file = formData.get('file') as File;
         const userId = formData.get('userId') as string;
