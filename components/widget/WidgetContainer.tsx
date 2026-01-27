@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { BeforeAfterSlider } from "./BeforeAfterSlider";
 import {
     Dialog,
     DialogContent,
@@ -466,10 +467,19 @@ export default function WidgetContainer() {
                             animate={{ opacity: 1 }}
                             className="space-y-6 text-center"
                         >
-                            <Card className="overflow-hidden border-primary/20 shadow-2xl relative group">
-                                <div className="aspect-square bg-muted relative">
-                                    {generatedImage && <img src={generatedImage} alt="New Smile" className="w-full h-full object-cover" />}
-                                    <div className="absolute bottom-4 right-4">
+                            <Card className="overflow-hidden border-primary/20 shadow-2xl relative group bg-black">
+                                <div className="aspect-[3/4] bg-muted relative w-full h-[500px] md:h-auto">
+                                    {generatedImage && image ? (
+                                        <BeforeAfterSlider
+                                            beforeImage={URL.createObjectURL(image)}
+                                            afterImage={generatedImage}
+                                        />
+                                    ) : (
+                                        <div className="flex items-center justify-center w-full h-full text-destructive">
+                                            Error cargando imágenes
+                                        </div>
+                                    )}
+                                    <div className="absolute bottom-4 right-4 z-20">
                                         <Badge className="bg-white/90 text-primary hover:bg-white backdrop-blur shadow-sm">
                                             AI GENERATED
                                         </Badge>
