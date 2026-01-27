@@ -236,7 +236,8 @@ export const analyzeImageAndGeneratePrompts = async (base64Image: string): Promi
                 continue;
             }
             console.error("Analysis failed:", error);
-            throw error;
+            // SANITIZE ERROR FOR SERVER ACTION SERIALIZATION
+            throw new Error(`Analysis Failed: ${error.message || "Unknown error"}`);
         }
     }
     throw new Error("Analysis failed after retries.");
@@ -343,7 +344,8 @@ export const generateSmileVariation = async (
                 continue;
             }
             console.error("Image generation failed:", error);
-            throw error;
+            // SANITIZE ERROR
+            throw new Error(`Generation Failed: ${error.message || "Unknown error"}`);
         }
     }
     throw new Error("Image generation failed after multiple retries.");
