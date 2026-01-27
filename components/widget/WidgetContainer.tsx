@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 
 // Combined step for auto-flow
-type Step = "UPLOAD" | "PROCESSING" | "LOCKED_RESULT" | "LEAD_FORM" | "RESULT";
+type Step = "UPLOAD" | "PROCESSING" | "LOCKED_RESULT" | "LEAD_FORM" | "RESULT" | "SURVEY";
 
 // Status steps for the progress UI
 type ProcessStatus = 'validating' | 'scanning' | 'analyzing' | 'designing' | 'complete';
@@ -45,6 +45,7 @@ export default function WidgetContainer() {
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
     const [userId, setUserId] = useState<string>("anon");
+    const [leadId, setLeadId] = useState<string | null>(null);
 
     // Process Status State
     const [processStatus, setProcessStatus] = useState<ProcessStatus>('validating');
@@ -207,6 +208,7 @@ export default function WidgetContainer() {
             }
 
             toast.success("¡Información enviada con éxito!");
+            setLeadId(leadId); // Persist ID for next step
             setStep("RESULT");
         } catch (err) {
             console.error(err);
@@ -217,6 +219,38 @@ export default function WidgetContainer() {
     const handleVideoRequest = () => {
         setIsVideoDialogOpen(false);
         toast.info("Solicitud enviada.", { description: "Te contactaremos pronto." });
+    };
+
+    const handleSurveySubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!leadId) return;
+
+        const formData = new FormData(e.target as HTMLFormElement);
+        const surveyData = {
+            ageRange: formData.get('ageRange'),
+            improvementGoal: formData.get('improvementGoal'),
+            timeframe: formData.get('timeframe'),
+            clinicPreference: formData.get('clinicPreference')
+        };
+
+        try {
+            const supabase = createClient();
+            const { error } = await supabase
+                .from('leads')
+                .update({ survey_data: surveyData })
+                .eq('id', leadId);
+
+            if (error) throw error;
+
+            toast.success("Gracias por tus respuestas");
+            setIsVideoDialogOpen(true); // Open video dialog after survey
+            setStep("RESULT"); // Go back to result or stay? Let's stay on result but open dialog.
+            // Actually user said "before asking for video... ask questions". 
+            // So flow: Result -> Click Video -> Survey -> Submit Survey -> Show Video Dialog.
+        } catch (err) {
+            console.error(err);
+            toast.error("Error al guardar respuestas.");
+        }
     };
 
     // Status List Component
@@ -477,7 +511,14 @@ export default function WidgetContainer() {
                             <div className="w-full max-w-[420px] flex gap-2">
                                 <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button variant="outline" className="flex-1 gap-2 border-primary/20 hover:bg-primary/5 h-12 text-base font-bold">
+                                        <Button
+                                            variant="outline"
+                                            className="flex-1 gap-2 border-primary/20 hover:bg-primary/5 h-12 text-base font-bold"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setStep("SURVEY");
+                                            }}
+                                        >
                                             <Video className="w-5 h-5 text-primary" /> Generar Video (Beta)
                                         </Button>
                                     </DialogTrigger>
