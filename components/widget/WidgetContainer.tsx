@@ -200,11 +200,11 @@ export default function WidgetContainer() {
             animate={{ opacity: 1, x: 0 }}
             className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${active ? 'bg-primary/10 border-primary/20' : 'bg-transparent border-transparent'} ${completed ? 'text-muted-foreground' : 'text-foreground'}`}
         >
-            <div className={`p-2 rounded-full ${completed ? 'bg-green-500/20 text-green-500' : active ? 'bg-primary/20 text-primary animate-pulse' : 'bg-muted text-muted-foreground'}`}>
+            <div className={`p-2 rounded-full flex-shrink-0 ${completed ? 'bg-green-500/20 text-green-500' : active ? 'bg-primary/20 text-primary animate-pulse' : 'bg-muted text-muted-foreground'}`}>
                 {completed ? <CheckCircle2 className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
             </div>
-            <span className={`text-sm font-medium ${active ? 'font-bold' : ''}`}>{label}</span>
-            {active && <Loader2 className="w-3 h-3 ml-auto animate-spin text-primary" />}
+            <span className={`text-sm font-medium ${active ? 'font-bold' : ''} break-words line-clamp-2`}>{label}</span>
+            {active && <Loader2 className="w-3 h-3 ml-auto animate-spin text-primary flex-shrink-0" />}
         </motion.div>
     );
 
@@ -295,7 +295,7 @@ export default function WidgetContainer() {
                             </div>
 
                             {/* Right: Progress List */}
-                            <div className="w-full max-w-xs space-y-2 pt-4">
+                            <div className="w-full max-w-sm md:max-w-xs space-y-2 pt-4 px-2">
                                 <h3 className="text-xl font-heading font-bold mb-4">Procesando...</h3>
                                 <StatusItem
                                     label="Validación Biométrica"
