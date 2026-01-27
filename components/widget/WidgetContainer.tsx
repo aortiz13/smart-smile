@@ -1,10 +1,10 @@
-"use client";
-
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
 import { Loader2, UploadCloud, Lock, CheckCircle2, AlertCircle, Video, PlayCircle } from "lucide-react";
-import { toast } from "sonner";
+import { validateImageStrict, analyzeImageAndGeneratePrompts, generateSmileVariation } from "@/app/services/gemini";
+import { uploadScan } from "@/app/services/storage";
+import { VariationType } from "@/types/gemini";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,15 @@ import {
 } from "@/components/ui/dialog";
 
 type Step = "UPLOAD" | "ANALYZING" | "PREVIEW" | "GENERATING" | "LOCKED_RESULT" | "LEAD_FORM" | "RESULT";
+
+const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+    });
+};
 
 export default function WidgetContainer() {
     const [step, setStep] = useState<Step>("UPLOAD");
@@ -50,40 +59,43 @@ export default function WidgetContainer() {
         setStep("ANALYZING");
 
         try {
-            const supabase = createClient();
+            // Convert to Base64 for Server Actions
+            const base64 = await fileToBase64(file);
 
-            // 1. Upload to Storage
-            const ext = file.name.split('.').pop();
-            const filename = `${crypto.randomUUID()}.${ext}`;
-            const { error: uploadError } = await supabase.storage
-                .from('uploads')
-                .upload(filename, file);
+            // 1. Strict Validation (Server Action)
+            const validation = await validateImageStrict(base64);
 
-            if (uploadError) throw uploadError;
-
-            // 2. Call Analyze Face
-            const { data: analysisData, error: analysisError } = await supabase.functions
-                .invoke('analyze-face', {
-                    body: { image_path: filename }
-                });
-
-            if (analysisError) throw analysisError;
-
-            setAnalysisResult(analysisData);
-
-            // Transition based on validity
-            if (analysisData.valid) {
-                toast.success("Foto analizada correctamente");
-                setStep("PREVIEW");
-            } else {
-                toast.error(`Error: ${analysisData.reason || "Imagen no válida"}`);
+            if (!validation.isValid) {
+                toast.error(validation.reason || "Imagen no válida");
                 setStep("UPLOAD");
                 setImage(null);
+                return;
             }
 
-        } catch (err) {
+            // 2. Upload to Storage (Server Action wrapper or Client)
+            const formData = new FormData();
+            formData.append('file', file);
+            // We need a userId. For now, using a temp ID if not auth, or fetch user. 
+            // In the prototype it passed userId. Here we might be anon.
+            // Let's use a random ID for anonymous uploads or check auth.
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            const userId = user?.id || 'anon_' + crypto.randomUUID();
+            formData.append('userId', userId);
+
+            // Background upload (non-blocking for UI but good to await)
+            await uploadScan(formData);
+
+            // 3. Analyze Image (Server Action)
+            const analysisData = await analyzeImageAndGeneratePrompts(base64);
+            setAnalysisResult(analysisData);
+
+            toast.success("Foto analizada correctamente");
+            setStep("PREVIEW");
+
+        } catch (err: any) {
             console.error(err);
-            toast.error("Ocurrió un error procesando la imagen.");
+            toast.error(`Error: ${err.message || "Ocurrió un error procesando la imagen."}`);
             setStep("UPLOAD");
             setImage(null);
         }
@@ -239,26 +251,28 @@ export default function WidgetContainer() {
                                 onClick={async () => {
                                     setStep("GENERATING");
                                     try {
-                                        const supabase = createClient();
-                                        if (!image) throw new Error("No image found");
-                                        const ext = image.name.split('.').pop();
-                                        const filename = `regen-${crypto.randomUUID()}.${ext}`;
-                                        await supabase.storage.from('uploads').upload(filename, image);
+                                        if (!image || !analysisResult) throw new Error("Datos faltantes");
 
-                                        const { data, error } = await supabase.functions.invoke('generate-smile', {
-                                            body: {
-                                                image_path: filename,
-                                                prompt_options: {}
-                                            }
-                                        });
+                                        const base64 = await fileToBase64(image);
+                                        const naturalVariation = analysisResult.variations.find((v: any) => v.type === VariationType.ORIGINAL_BG);
 
-                                        if (error) throw error;
-                                        setGeneratedImage(data.public_url);
+                                        if (!naturalVariation) throw new Error("No se encontró plan de restauración natural.");
+
+                                        const prompt = `
+                                          Perform a ${naturalVariation.prompt_data.Composition} of ${naturalVariation.prompt_data.Subject} ${naturalVariation.prompt_data.Action} in a ${naturalVariation.prompt_data.Location}.
+                                          Style: ${naturalVariation.prompt_data.Style}. 
+                                          IMPORTANT INSTRUCTIONS: ${naturalVariation.prompt_data.Editing_Instructions}.
+                                          ${naturalVariation.prompt_data.Refining_Details || ''}
+                                        `;
+
+                                        const imageUrl = await generateSmileVariation(base64, prompt, "9:16");
+
+                                        setGeneratedImage(imageUrl);
                                         setStep("LOCKED_RESULT");
 
-                                    } catch (e) {
+                                    } catch (e: any) {
                                         console.error(e);
-                                        toast.error("Error generando simulación.");
+                                        toast.error(`Error generando simulación: ${e.message}`);
                                         setStep("PREVIEW");
                                     }
                                 }}
