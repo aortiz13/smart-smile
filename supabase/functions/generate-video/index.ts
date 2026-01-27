@@ -66,8 +66,19 @@ Deno.serve(async (req) => {
         // Endpoint for Veo 3.1
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-fast-generate-preview:predictLongRunning?key=${apiKey}`;
 
-        // Get absolute URL for the image
-        const { data: { publicUrl: imageUrl } } = supabase.storage.from('generated').getPublicUrl(generation.output_path)
+        // Get Signed URL for the image (safer if bucket is private)
+        const { data: signedUrlData, error: signError } = await supabase
+            .storage
+            .from('generated')
+            .createSignedUrl(generation.output_path, 60); // Valid for 60 seconds
+
+        if (signError || !signedUrlData) {
+            console.error("Signed URL Error:", signError);
+            throw new Error(`Failed to create signed URL for ${generation.output_path}`);
+        }
+
+        const imageUrl = signedUrlData.signedUrl;
+        console.log(`Fetching image from: ${imageUrl}`);
 
         // Download image to send as bytes
         const imgResponse = await fetch(imageUrl);
