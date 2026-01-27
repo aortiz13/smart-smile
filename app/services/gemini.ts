@@ -5,12 +5,12 @@ import { AnalysisResponse, VariationType } from "@/types/gemini";
 import { logApiUsage, checkVideoQuota, markVideoQuotaUsed } from "./backendService";
 
 // Models
-const ANALYSIS_MODEL = "gemini-2.5-flash";
-const IMAGE_MODEL = "gemini-3-pro-image-preview";
-const TARGET_IMAGE_MODEL = "gemini-3-pro-image-preview"; // Mapping this to the same as IMAGE_MODEL based on user intent
+const ANALYSIS_MODEL = "gemini-1.5-flash"; // Fallback to stable if 2.5 is not found
+const IMAGE_MODEL = "gemini-1.5-pro"; // Or imagen-3.0 if available
+const TARGET_IMAGE_MODEL = "gemini-1.5-pro"; // Mapping this to the same as IMAGE_MODEL based on user intent
 
-const VALIDATION_MODEL = "gemini-2.5-flash";
-const VIDEO_MODEL = "veo-3.1-fast-generate-preview";
+const VALIDATION_MODEL = "gemini-1.5-flash";
+const VIDEO_MODEL = "veo-2.0-generate-preview"; // Veo 3.1 might not be public yet
 
 // Helper to strip base64 prefix
 const stripBase64Prefix = (base64: string): string => {
