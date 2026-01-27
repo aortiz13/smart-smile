@@ -5,12 +5,12 @@ import { AnalysisResponse, VariationType } from "@/types/gemini";
 import { logApiUsage, checkVideoQuota, markVideoQuotaUsed } from "./backendService";
 
 // Models
-const ANALYSIS_MODEL = "gemini-1.5-flash";
-const IMAGE_MODEL = "imagen-3.0-generate-001";
-const TARGET_IMAGE_MODEL = "gemini-1.5-flash";
+const ANALYSIS_MODEL = "gemini-2.5-flash";
+const IMAGE_MODEL = "gemini-3-pro-image-preview";
+const TARGET_IMAGE_MODEL = "gemini-3-pro-image-preview"; // Mapping this to the same as IMAGE_MODEL based on user intent
 
-const VALIDATION_MODEL = "gemini-1.5-flash";
-const VIDEO_MODEL = "veo-2.0-generate-001"; // or latest veo model available via API
+const VALIDATION_MODEL = "gemini-2.5-flash";
+const VIDEO_MODEL = "veo-3.1-fast-generate-preview";
 
 // Helper to strip base64 prefix
 const stripBase64Prefix = (base64: string): string => {
@@ -304,7 +304,7 @@ export const generateSmileVariation = async (
             // Prototype used: gemini-3-pro-image-preview. 
             // We will try to use the same if possible, or 'imagen-3.0-generate-001'
             const response = await ai.models.generateContent({
-                model: "gemini-1.5-flash", // Reverting to flash for now as 3-pro-image-preview might be private preview
+                model: TARGET_IMAGE_MODEL,
                 // If the user specifically needs the image model, we might need to change this.
                 // For now, using flash for broader compatibility unless specified otherwise.
                 // ACTUALLY, strict 'text-to-image' or 'image-to-image' via `generateContent` in new SDK depends on model capabilities.
