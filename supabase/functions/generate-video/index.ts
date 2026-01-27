@@ -93,8 +93,7 @@ Deno.serve(async (req) => {
                 parameters: {
                     sampleCount: 1,
                     aspectRatio: "9:16",
-                    resolution: "720p",
-                    includeAudio: false
+                    resolution: "720p"
                 }
             })
         });
