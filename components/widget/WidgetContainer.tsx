@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
-import { Loader2, UploadCloud, Lock, CheckCircle2, AlertCircle, Video, PlayCircle } from "lucide-react";
+import { Loader2, UploadCloud, Lock, CheckCircle2, Video, PlayCircle, Sparkles, ScanFace, FileSearch, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { validateImageStrict, analyzeImageAndGeneratePrompts, generateSmileVariation } from "@/app/services/gemini";
 import { uploadScan } from "@/app/services/storage";
@@ -12,8 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card } from "@/components/ui/card";
 import { BeforeAfterSlider } from "./BeforeAfterSlider";
 import {
     Dialog,
@@ -25,7 +24,11 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 
-type Step = "UPLOAD" | "ANALYZING" | "PREVIEW" | "GENERATING" | "LOCKED_RESULT" | "LEAD_FORM" | "RESULT";
+// Combined step for auto-flow
+type Step = "UPLOAD" | "PROCESSING" | "LOCKED_RESULT" | "LEAD_FORM" | "RESULT";
+
+// Status steps for the progress UI
+type ProcessStatus = 'validating' | 'scanning' | 'analyzing' | 'designing' | 'complete';
 
 const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -39,10 +42,13 @@ const fileToBase64 = (file: File): Promise<string> => {
 export default function WidgetContainer() {
     const [step, setStep] = useState<Step>("UPLOAD");
     const [image, setImage] = useState<File | null>(null);
-    const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
     const [userId, setUserId] = useState<string>("anon");
+
+    // Process Status State
+    const [processStatus, setProcessStatus] = useState<ProcessStatus>('validating');
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Scanning Animation Variants
@@ -59,7 +65,7 @@ export default function WidgetContainer() {
         }
     };
 
-    // Image Compression Utility
+    // Image Compression
     const compressImage = (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -70,66 +76,47 @@ export default function WidgetContainer() {
                 img.onload = () => {
                     const canvas = document.createElement("canvas");
                     const ctx = canvas.getContext("2d");
-                    const MAX_WIDTH = 1500; // Sufficient for AI analysis but much lighter
+                    const MAX_WIDTH = 1500;
                     const MAX_HEIGHT = 1500;
-
                     let width = img.width;
                     let height = img.height;
-
                     if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
+                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
                     } else {
-                        if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
+                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
                     }
-
                     canvas.width = width;
                     canvas.height = height;
                     ctx?.drawImage(img, 0, 0, width, height);
-
-                    // Compress to JPEG at 80% quality
-                    const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
-                    resolve(dataUrl);
+                    resolve(canvas.toDataURL("image/jpeg", 0.8));
                 };
-                img.onerror = (err) => reject(err);
+                img.onerror = reject;
             };
-            reader.onerror = (err) => reject(err);
+            reader.onerror = reject;
         });
     };
 
     const handleUpload = async (file: File) => {
         setImage(file);
-        setStep("ANALYZING");
+        setStep("PROCESSING");
+        setProcessStatus('validating');
 
         try {
             const base64 = await compressImage(file);
 
             // 1. Strict Validation
             const validationResponse = await validateImageStrict(base64);
-
             if (!validationResponse.success) {
-                toast.error(validationResponse.error || "Error de validación");
-                setStep("UPLOAD");
-                setImage(null);
-                return;
+                throw new Error(validationResponse.error || "Error de validación");
             }
-
             if (!validationResponse.data?.isValid) {
-                toast.error(validationResponse.data?.reason || "Imagen no válida");
-                setStep("UPLOAD");
-                setImage(null);
-                return;
+                throw new Error(validationResponse.data?.reason || "Imagen no válida");
             }
+            setProcessStatus('scanning');
 
             // 2. Upload to Storage
             const compressedBlob = await (await fetch(base64)).blob();
             const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
-
             const formData = new FormData();
             formData.append('file', compressedFile);
 
@@ -139,30 +126,41 @@ export default function WidgetContainer() {
             setUserId(currentUserId);
             formData.append('userId', currentUserId);
 
-            const uploadResponse = await uploadScan(formData);
-            if (!uploadResponse.success) {
-                console.error("Storage upload failed:", uploadResponse.error);
-                // We keep going even if storage fails for this MVP if needed, 
-                // but let's be strict for now to debug.
-            }
+            await uploadScan(formData); // Non-blocking fail-safe
+            setProcessStatus('analyzing');
 
             // 3. Analyze Image
             const analysisResponse = await analyzeImageAndGeneratePrompts(base64);
+            if (!analysisResponse.success) throw new Error(analysisResponse.error || "Error analizando imagen");
 
-            if (!analysisResponse.success) {
-                toast.error(analysisResponse.error || "Error analizando imagen");
-                setStep("UPLOAD");
-                setImage(null);
-                return;
-            }
+            const analysisResult = analysisResponse.data;
+            if (!analysisResult) throw new Error("No se pudo obtener el análisis.");
 
-            setAnalysisResult(analysisResponse.data);
-            toast.success("Foto analizada correctamente");
-            setStep("PREVIEW");
+            setProcessStatus('designing');
+
+            // 4. Auto-Generate Smile
+            const naturalVariation = analysisResult.variations.find((v: any) => v.type === VariationType.ORIGINAL_BG);
+            if (!naturalVariation) throw new Error("No se encontró plan de restauración natural.");
+
+            const prompt = `
+                Perform a ${naturalVariation.prompt_data.Composition} of ${naturalVariation.prompt_data.Subject} ${naturalVariation.prompt_data.Action} in a ${naturalVariation.prompt_data.Location}.
+                Style: ${naturalVariation.prompt_data.Style}. 
+                IMPORTANT INSTRUCTIONS: ${naturalVariation.prompt_data.Editing_Instructions}.
+                ${naturalVariation.prompt_data.Refining_Details || ''}
+            `;
+
+            const imageUrl = await generateSmileVariation(base64, prompt, "9:16", currentUserId);
+
+            setGeneratedImage(imageUrl);
+            setProcessStatus('complete');
+
+            // Allow a brief moment for the 'complete' state to show before transitioning
+            await new Promise(r => setTimeout(r, 800));
+            setStep("LOCKED_RESULT");
 
         } catch (err: any) {
             console.error("WidgetContainer Error:", err);
-            toast.error(`Error Crítico: ${err.message || "Ocurrió un error."}`);
+            toast.error(err.message || "Ocurrió un error.");
             setStep("UPLOAD");
             setImage(null);
         }
@@ -172,60 +170,72 @@ export default function WidgetContainer() {
         e.preventDefault();
         const formData = new FormData(e.target as HTMLFormElement);
         const data = Object.fromEntries(formData);
-
         try {
             const supabase = createClient();
             const { error } = await supabase.from('leads').insert({
                 name: data.name,
                 email: data.email,
                 phone: data.phone,
-                survey_data: { analysis: analysisResult },
+                // survey_data could be enriched here if we kept analysisResult in state, 
+                // but for MVP flow simplicity we might skip or store minimalist data
                 status: 'pending'
             });
-
             if (error) throw error;
-
             toast.success("¡Información enviada con éxito!");
             setStep("RESULT");
         } catch (err) {
-            console.error(err);
             toast.error("Error guardando datos. Intenta de nuevo.");
         }
     };
 
     const handleVideoRequest = () => {
         setIsVideoDialogOpen(false);
-        toast.info("Solicitud de video enviada. Te contactaremos pronto.", {
-            description: "Esta función está en Beta privada."
-        });
+        toast.info("Solicitud enviada.", { description: "Te contactaremos pronto." });
     };
 
+    // Status List Component
+    const StatusItem = ({ active, completed, label, icon: Icon }: any) => (
+        <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${active ? 'bg-primary/10 border-primary/20' : 'bg-transparent border-transparent'} ${completed ? 'text-muted-foreground' : 'text-foreground'}`}
+        >
+            <div className={`p-2 rounded-full ${completed ? 'bg-green-500/20 text-green-500' : active ? 'bg-primary/20 text-primary animate-pulse' : 'bg-muted text-muted-foreground'}`}>
+                {completed ? <CheckCircle2 className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+            </div>
+            <span className={`text-sm font-medium ${active ? 'font-bold' : ''}`}>{label}</span>
+            {active && <Loader2 className="w-3 h-3 ml-auto animate-spin text-primary" />}
+        </motion.div>
+    );
+
     return (
-        <div className="relative min-h-[600px] w-full bg-card text-card-foreground flex flex-col font-sans">
-            <div className="p-4 border-b flex justify-between items-center bg-muted/20">
-                <h1 className="text-xl font-heading font-bold text-primary tracking-tight">Smile Forward AI</h1>
-                <div className="flex items-center gap-2">
+        <div className="relative h-[calc(100vh-100px)] min-h-[500px] w-full bg-card text-card-foreground flex flex-col font-sans overflow-hidden rounded-xl border-0 md:border shadow-sm">
+            {/* Header */}
+            <div className="flex-none p-4 border-b flex justify-between items-center bg-muted/20 backdrop-blur-sm z-20">
+                <h1 className="text-lg font-heading font-bold text-primary tracking-tight">Smile AI</h1>
+                <div className="flex items-center gap-2 px-2 py-1 bg-background/50 rounded-full border shadow-sm">
                     <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                     </span>
-                    <span className="text-xs text-muted-foreground font-mono">ONLINE</span>
+                    <span className="text-[10px] text-muted-foreground font-mono font-bold">ONLINE</span>
                 </div>
             </div>
 
-            <main className="flex-1 p-6 relative overflow-hidden">
+            {/* Main Content Area - Scrollable if needed but mostly constrained */}
+            <main className="flex-1 relative overflow-y-auto overflow-x-hidden p-4 md:p-6 scrollbar-hide">
                 <AnimatePresence mode="wait">
                     {/* UPLOAD STEP */}
                     {step === "UPLOAD" && (
                         <motion.div
                             key="upload"
-                            initial={{ opacity: 0, scale: 0.95 }}
+                            initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="h-full flex flex-col justify-center items-center text-center space-y-8 py-8"
+                            exit={{ opacity: 0, scale: 0.98 }}
+                            className="h-full flex flex-col justify-center items-center text-center space-y-6"
                         >
                             <div
-                                className="group relative w-full aspect-[4/3] max-w-sm border-2 border-dashed border-input rounded-2xl hover:border-primary/50 hover:bg-secondary/30 transition-all flex flex-col items-center justify-center cursor-pointer overflow-hidden"
+                                className="group relative w-full aspect-[4/3] max-w-xs md:max-w-sm border-2 border-dashed border-input rounded-2xl hover:border-primary/50 hover:bg-secondary/30 transition-all flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-background/50"
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => {
                                     e.preventDefault();
@@ -234,12 +244,11 @@ export default function WidgetContainer() {
                                 onClick={() => fileInputRef.current?.click()}
                             >
                                 <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                                <div className="p-5 bg-background shadow-sm rounded-full mb-4 group-hover:scale-110 transition-transform duration-500">
-                                    <UploadCloud className="w-10 h-10 text-primary" />
+                                <div className="p-4 bg-background shadow-lg rounded-full mb-4 group-hover:scale-110 transition-transform duration-500 border border-primary/10">
+                                    <UploadCloud className="w-8 h-8 text-primary" />
                                 </div>
                                 <h3 className="text-lg font-bold text-foreground">Sube tu Selfie</h3>
-                                <p className="text-sm text-muted-foreground px-8 mt-2">Arrastra tu imagen aquí o haz clic para explorar</p>
+                                <p className="text-xs text-muted-foreground px-6 mt-1">Arrastra o haz clic</p>
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -248,127 +257,70 @@ export default function WidgetContainer() {
                                     onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
                                 />
                             </div>
-                            <p className="text-xs text-muted-foreground/80 max-w-xs text-balance">
-                                Privacidad garantizada. Tu foto se elimina automáticamente después del análisis.
-                            </p>
+                            <div className="flex gap-4 text-[10px] text-muted-foreground bg-muted/30 px-4 py-2 rounded-full border border-border/50">
+                                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Privado</span>
+                                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Rápido</span>
+                                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> IA Avanzada</span>
+                            </div>
                         </motion.div>
                     )}
 
-                    {/* ANALYZING STEP */}
-                    {step === "ANALYZING" && (
+                    {/* PROCESSING (Unified Automation Step) */}
+                    {step === "PROCESSING" && (
                         <motion.div
-                            key="analyzing"
+                            key="processing"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="flex flex-col items-center justify-center h-full space-y-8"
+                            className="h-full flex flex-col md:flex-row gap-6 items-center md:items-start justify-center p-2"
                         >
-                            <div className="relative w-64 h-64 rounded-2xl overflow-hidden shadow-2xl border border-primary/20 bg-black">
+                            {/* Left: Visual Scanner */}
+                            <div className="relative w-full max-w-[280px] aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl border border-primary/20 bg-black flex-shrink-0">
                                 {image ? (
-                                    <img src={URL.createObjectURL(image)} alt="Analyzing" className="w-full h-full object-cover opacity-80" />
+                                    <img src={URL.createObjectURL(image)} alt="Analyzing" className="w-full h-full object-cover opacity-60" />
                                 ) : (
                                     <div className="w-full h-full bg-muted" />
                                 )}
-
-                                {/* Scanning Effect */}
                                 <motion.div
                                     variants={scanVariants}
                                     initial="initial"
                                     animate="animate"
-                                    className="absolute left-0 right-0 h-1 bg-primary shadow-[0_0_20px_2px_rgba(42,157,143,0.8)] z-10"
+                                    className="absolute left-0 right-0 h-1 bg-cyan-400 shadow-[0_0_20px_4px_rgba(34,211,238,0.6)] z-10"
                                 />
-                                <div className="absolute inset-0 bg-grid-white/[0.1] bg-[size:20px_20px]" />
-
-                                {/* Overlay Data */}
-                                <div className="absolute bottom-4 left-4 right-4 flex justify-between text-[10px] font-mono text-primary-foreground/80">
-                                    <span>FACE_ID: DETECTING</span>
-                                    <span>CONFIDENCE: 99.8%</span>
+                                <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
+                                <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                                    <span className="text-[10px] font-mono text-cyan-200">REC_MODE: ON</span>
                                 </div>
                             </div>
-                            <div className="space-y-3 text-center max-w-xs mx-auto">
-                                <h3 className="font-heading font-bold text-xl">Escaneando Rostro...</h3>
-                                <Progress value={66} className="h-2" />
-                                <p className="text-xs text-muted-foreground animate-pulse">Detectando puntos de referencia biométricos</p>
-                            </div>
-                        </motion.div>
-                    )}
 
-                    {/* PREVIEW STEP */}
-                    {step === "PREVIEW" && (
-                        <motion.div
-                            key="preview"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="space-y-6"
-                        >
-                            <Card className="bg-gradient-to-br from-background to-secondary/20 border-border shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-primary flex items-center gap-2 text-lg">
-                                        <CheckCircle2 className="w-5 h-5" /> Análisis Completado
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="p-4 bg-background/50 rounded-lg border border-border/50 text-sm leading-relaxed text-muted-foreground">
-                                        {analysisResult?.analysis || "Estructura facial analizada con éxito. Compatible con carillas de porcelana y diseño de sonrisa digital."}
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Button
-                                onClick={async () => {
-                                    setStep("GENERATING");
-                                    try {
-                                        if (!image || !analysisResult) throw new Error("Datos faltantes");
-
-                                        const base64 = await fileToBase64(image);
-                                        const naturalVariation = analysisResult.variations.find((v: any) => v.type === VariationType.ORIGINAL_BG);
-
-                                        if (!naturalVariation) throw new Error("No se encontró plan de restauración natural.");
-
-                                        const prompt = `
-                                          Perform a ${naturalVariation.prompt_data.Composition} of ${naturalVariation.prompt_data.Subject} ${naturalVariation.prompt_data.Action} in a ${naturalVariation.prompt_data.Location}.
-                                          Style: ${naturalVariation.prompt_data.Style}. 
-                                          IMPORTANT INSTRUCTIONS: ${naturalVariation.prompt_data.Editing_Instructions}.
-                                          ${naturalVariation.prompt_data.Refining_Details || ''}
-                                        `;
-
-                                        const imageUrl = await generateSmileVariation(base64, prompt, "9:16", userId);
-
-                                        setGeneratedImage(imageUrl);
-                                        setStep("LOCKED_RESULT");
-
-                                    } catch (e: any) {
-                                        console.error(e);
-                                        toast.error(`Error generando simulación: ${e.message}`);
-                                        setStep("PREVIEW");
-                                    }
-                                }}
-                                className="w-full text-lg h-14 shadow-xl hover:shadow-primary/25 transition-all font-bold rounded-xl"
-                            >
-                                ✨ Generar Nueva Sonrisa
-                            </Button>
-                        </motion.div>
-                    )}
-
-                    {/* GENERATING STEP */}
-                    {step === "GENERATING" && (
-                        <motion.div
-                            key="generating"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="flex flex-col items-center justify-center h-full space-y-8"
-                        >
-                            <div className="relative">
-                                {/* Double Spinner */}
-                                <div className="w-20 h-20 border-4 border-primary/20 rounded-full" />
-                                <div className="absolute inset-0 w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <Loader2 className="w-8 h-8 text-primary animate-pulse" />
-                                </div>
-                            </div>
-                            <div className="space-y-2 text-center">
-                                <h3 className="font-heading font-bold text-2xl bg-gradient-to-r from-primary to-teal-600 bg-clip-text text-transparent">Diseñando Sonrisa</h3>
-                                <p className="text-sm text-muted-foreground animate-pulse">Aplicando principios de estética dental avanzada...</p>
+                            {/* Right: Progress List */}
+                            <div className="w-full max-w-xs space-y-2 pt-4">
+                                <h3 className="text-xl font-heading font-bold mb-4">Procesando...</h3>
+                                <StatusItem
+                                    label="Validación Biométrica"
+                                    icon={ScanFace}
+                                    active={processStatus === 'validating'}
+                                    completed={['scanning', 'analyzing', 'designing', 'complete'].includes(processStatus)}
+                                />
+                                <StatusItem
+                                    label="Escaneo Facial 3D"
+                                    icon={FileSearch}
+                                    active={processStatus === 'scanning'}
+                                    completed={['analyzing', 'designing', 'complete'].includes(processStatus)}
+                                />
+                                <StatusItem
+                                    label="Análisis Morfológico"
+                                    icon={Sparkles}
+                                    active={processStatus === 'analyzing'}
+                                    completed={['designing', 'complete'].includes(processStatus)}
+                                />
+                                <StatusItem
+                                    label="Diseño Generativo"
+                                    icon={Wand2}
+                                    active={processStatus === 'designing'}
+                                    completed={['complete'].includes(processStatus)}
+                                />
                             </div>
                         </motion.div>
                     )}
@@ -377,34 +329,31 @@ export default function WidgetContainer() {
                     {step === "LOCKED_RESULT" && (
                         <motion.div
                             key="locked"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="space-y-6"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="h-full flex flex-col items-center justify-center space-y-6"
                         >
-                            <div className="aspect-square bg-muted rounded-2xl overflow-hidden relative border border-border/50 group shadow-inner">
+                            <div className="relative w-full max-w-[280px] aspect-[9/16] bg-muted rounded-2xl overflow-hidden border border-border/50 shadow-2xl group">
                                 {generatedImage ? (
-                                    <div className="w-full h-full relative">
-                                        <img src={generatedImage} alt="Generated Smile" className="w-full h-full object-cover blur-xl scale-110" />
-                                        <div className="absolute inset-0 bg-background/20 backdrop-blur-[2px]" />
+                                    <>
+                                        <img src={generatedImage} alt="Generated" className="w-full h-full object-cover blur-md scale-105 saturate-150 opacity-90 transition-all duration-700" />
+                                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+                                    </>
+                                ) : null}
+                                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 p-6 text-center text-white">
+                                    <div className="p-4 bg-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                                        <Lock className="w-8 h-8" />
                                     </div>
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-destructive">Error de imagen</div>
-                                )}
-
-                                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 p-6 text-center">
-                                    <div className="p-4 bg-background rounded-full shadow-2xl border border-primary/10">
-                                        <Lock className="w-8 h-8 text-primary" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <h3 className="font-bold text-2xl text-foreground drop-shadow-sm">Resultado Listo</h3>
-                                        <p className="text-sm text-muted-foreground font-medium">Ingresa tus datos para desbloquear tu <br /> Simulación HD.</p>
+                                    <div>
+                                        <h3 className="font-bold text-2xl drop-shadow-lg">¡Listo!</h3>
+                                        <p className="text-sm text-white/80 font-medium mt-1">Tu nueva sonrisa está generada.</p>
                                     </div>
                                 </div>
                             </div>
                             <Button
                                 onClick={() => setStep("LEAD_FORM")}
-                                className="w-full text-lg h-12 font-bold rounded-xl"
-                                variant="default"
+                                className="w-full max-w-xs text-lg h-12 font-bold rounded-xl shadow-lg animate-bounce-subtle"
+                                size="lg"
                             >
                                 Desbloquear Ahora
                             </Button>
@@ -415,132 +364,84 @@ export default function WidgetContainer() {
                     {step === "LEAD_FORM" && (
                         <motion.div
                             key="form"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="space-y-6"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="h-full flex flex-col items-center justify-center"
                         >
-                            <div className="text-center space-y-2">
-                                <h2 className="text-2xl font-heading font-bold text-foreground">Último Paso</h2>
-                                <p className="text-sm text-muted-foreground">Te enviaremos tu simulación y un plan de tratamiento preliminar.</p>
+                            <div className="w-full max-w-sm space-y-6">
+                                <div className="text-center space-y-1">
+                                    <h2 className="text-2xl font-heading font-bold">Último Paso</h2>
+                                    <p className="text-sm text-muted-foreground">Ingresa tus datos para ver el resultado.</p>
+                                </div>
+                                <form className="space-y-4" onSubmit={handleLeadSubmit}>
+                                    <div className="grid gap-4">
+                                        <Input id="name" name="name" placeholder="Nombre completo" required className="h-11" />
+                                        <Input id="email" name="email" type="email" placeholder="Correo electrónico" required className="h-11" />
+                                        <Input id="phone" name="phone" type="tel" placeholder="Teléfono" required className="h-11" />
+                                    </div>
+                                    <div className="flex items-start space-x-3">
+                                        <Checkbox id="terms" required className="mt-1" />
+                                        <Label htmlFor="terms" className="text-xs text-muted-foreground font-normal">
+                                            Acepto la política de privacidad y el uso de mi imagen.
+                                        </Label>
+                                    </div>
+                                    <Button type="submit" className="w-full h-12 text-base font-bold rounded-xl shadow-md">
+                                        Ver Resultado
+                                    </Button>
+                                </form>
                             </div>
-
-                            <form className="space-y-4 pt-2" onSubmit={handleLeadSubmit}>
-                                <div className="space-y-2">
-                                    <Label htmlFor="name" className="text-foreground/80">Nombre completo</Label>
-                                    <Input
-                                        id="name" name="name" placeholder="Ej. Juan Pérez" required
-                                        className="h-11 bg-background focus-visible:ring-primary focus-visible:border-primary"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="email" className="text-foreground/80">Correo electrónico</Label>
-                                    <Input
-                                        id="email" name="email" type="email" placeholder="juan@ejemplo.com" required
-                                        className="h-11 bg-background focus-visible:ring-primary focus-visible:border-primary"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="phone" className="text-foreground/80">Teléfono (WhatsApp)</Label>
-                                    <Input
-                                        id="phone" name="phone" type="tel" placeholder="+56 9 ..." required
-                                        className="h-11 bg-background focus-visible:ring-primary focus-visible:border-primary"
-                                    />
-                                </div>
-
-                                <div className="flex items-start space-x-3 pt-2">
-                                    <Checkbox id="terms" required className="mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
-                                    <Label htmlFor="terms" className="text-xs text-muted-foreground leading-snug font-normal cursor-pointer">
-                                        He leído y acepto la política de privacidad. Autorizo el uso de mi imagen para la simulación.
-                                    </Label>
-                                </div>
-
-                                <Button type="submit" className="w-full h-12 text-base font-bold rounded-xl shadow-lg mt-4">
-                                    Ver Mi Nueva Sonrisa
-                                </Button>
-                            </form>
                         </motion.div>
                     )}
 
-                    {/* FINAL RESULT */}
+                    {/* RESULT */}
                     {step === "RESULT" && (
                         <motion.div
                             key="result"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="space-y-6 text-center"
+                            className="h-full flex flex-col items-center gap-4"
                         >
-                            <Card className="overflow-hidden border-primary/20 shadow-2xl relative group bg-black">
-                                <div className="aspect-[9/16] bg-muted relative w-full h-[500px] md:h-auto">
-                                    {generatedImage && image ? (
-                                        <BeforeAfterSlider
-                                            beforeImage={URL.createObjectURL(image)}
-                                            afterImage={generatedImage}
-                                        />
-                                    ) : (
-                                        <div className="flex items-center justify-center w-full h-full text-destructive">
-                                            Error cargando imágenes
-                                        </div>
-                                    )}
-                                    <div className="absolute bottom-4 right-4 z-20">
-                                        <Badge className="bg-white/90 text-primary hover:bg-white backdrop-blur shadow-sm">
-                                            AI GENERATED
-                                        </Badge>
-                                    </div>
+                            <div className="relative w-full max-w-[320px] md:max-w-md aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl border border-primary/20 bg-black">
+                                {generatedImage && image ? (
+                                    <BeforeAfterSlider
+                                        beforeImage={URL.createObjectURL(image)}
+                                        afterImage={generatedImage}
+                                        className="h-full w-full"
+                                    />
+                                ) : (
+                                    <div className="flex items-center justify-center w-full h-full text-destructive">Error</div>
+                                )}
+                                <div className="absolute bottom-4 right-4 z-20 pointer-events-none">
+                                    <span className="bg-white/90 text-primary px-3 py-1 rounded-full text-[10px] font-bold shadow-sm backdrop-blur">
+                                        AI GENERATED
+                                    </span>
                                 </div>
-                            </Card>
-
-                            <div className="space-y-2">
-                                <h3 className="font-heading font-bold text-2xl text-foreground">¡Transformación Completa!</h3>
-                                <p className="text-sm text-muted-foreground">Hemos enviado el resultado de alta calidad a tu correo.</p>
                             </div>
 
-                            <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <div className="cursor-pointer group relative overflow-hidden bg-gradient-to-r from-secondary to-muted p-1 rounded-xl">
-                                        <div className="bg-background rounded-lg p-4 flex items-center justify-between group-hover:bg-secondary/10 transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-primary/10 rounded-full">
-                                                    <Video className="w-5 h-5 text-primary" />
-                                                </div>
-                                                <div className="text-left">
-                                                    <p className="font-bold text-sm">Versión en Video</p>
-                                                    <p className="text-xs text-muted-foreground">Verte hablando con tu nueva sonrisa</p>
-                                                </div>
-                                            </div>
-                                            <PlayCircle className="w-6 h-6 text-primary/50 group-hover:text-primary transition-colors" />
-                                        </div>
-                                    </div>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-md backdrop-blur-md bg-background/80">
-                                    <DialogHeader>
-                                        <DialogTitle>Solicitar Video Generativo</DialogTitle>
-                                        <DialogDescription>
-                                            Generaremos un video de 5 segundos donde te verás hablando naturalmente con tu nueva sonrisa.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="flex flex-col gap-4 py-4">
-                                        <div className="aspect-video bg-muted rounded-lg flex items-center justify-center border border-dashed">
-                                            <p className="text-xs text-muted-foreground">Preview (Estatico)</p>
-                                        </div>
-                                        <p className="text-sm text-muted-foreground">
-                                            Esta función consume créditos de generación avanzados. Te notificaremos por WhatsApp cuando esté listo.
-                                        </p>
-                                    </div>
-                                    <DialogFooter className="sm:justify-start">
-                                        <Button type="button" onClick={handleVideoRequest} className="w-full">
-                                            Confirmar Solicitud
+                            <div className="w-full max-w-md flex gap-2">
+                                <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" className="flex-1 gap-2 border-primary/20 hover:bg-primary/5">
+                                            <Video className="w-4 h-4 text-primary" /> Generar Video
                                         </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Video Generativo (Beta)</DialogTitle>
+                                            <DialogDescription>Crea un video hablando con tu nueva sonrisa.</DialogDescription>
+                                        </DialogHeader>
+                                        <div className="py-4 text-center text-sm text-muted-foreground">Próximamente disponible.</div>
+                                        <DialogFooter><Button onClick={handleVideoRequest}>Notificarme</Button></DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                                <Button className="flex-1 gap-2 font-bold" onClick={() => window.location.reload()}>
+                                    <Sparkles className="w-4 h-4" /> Probar Otra vez
+                                </Button>
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
             </main>
         </div>
     );
-}
-
-function Badge({ children, className }: { children: React.ReactNode, className?: string }) {
-    return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${className}`}>{children}</span>
 }
