@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -11,30 +11,31 @@ export default function LeadsPage() {
     const [loading, setLoading] = useState(true);
     const [selectedLead, setSelectedLead] = useState<any | null>(null);
 
-    useEffect(() => {
-        const fetchLeads = async () => {
-            try {
-                const supabase = createClient();
+    const fetchLeads = useCallback(async () => {
+        try {
+            const supabase = createClient();
 
-                const { data, error } = await supabase
-                    .from('leads')
-                    .select('*, generations(*)') // Fetch linked generations
-                    .order('created_at', { ascending: false });
+            const { data, error } = await supabase
+                .from('leads')
+                .select('*, generations(*)') // Fetch linked generations
+                .order('created_at', { ascending: false });
 
-                if (error) {
-                    toast.error(`Error cargando leads: ${error.message}`);
-                    throw error;
-                }
-                setLeads(data || []);
-            } catch (err: any) {
-                console.error("Leads Fetch Error:", err);
-                toast.error("No se pudieron cargar los leads. Revisa la consola.");
-            } finally {
-                setLoading(false);
+            if (error) {
+                toast.error(`Error cargando leads: ${error.message}`);
+                throw error;
             }
-        };
-        fetchLeads();
+            setLeads(data || []);
+        } catch (err: any) {
+            console.error("Leads Fetch Error:", err);
+            toast.error("No se pudieron cargar los leads. Revisa la consola.");
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchLeads();
+    }, [fetchLeads]);
 
     const statusLabels: Record<string, string> = {
         pending: "Pendiente",
@@ -111,6 +112,10 @@ export default function LeadsPage() {
                 lead={selectedLead}
                 open={!!selectedLead}
                 onOpenChange={(open) => !open && setSelectedLead(null)}
+                onLeadUpdated={() => {
+                    fetchLeads(); // Refresh table when status changes
+                    // No direct state mutation needed as fetchLeads handles it
+                }}
             />
         </div>
     );
