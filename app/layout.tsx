@@ -1,22 +1,25 @@
 import type { Metadata } from "next";
-import { Outfit, Inter } from "next/font/google";
+import { Inter, Outfit, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "sonner";
+import { DebugBanner } from "@/components/debug/DebugBanner";
 
 const outfit = Outfit({
-  variable: "--font-heading",
+  variable: "--font-outfit",
   subsets: ["latin"],
 });
 
 const inter = Inter({
-  variable: "--font-body",
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
+
 export const metadata: Metadata = {
-  title: "Smile Forward | Dental Corbella",
-  description: "Descubre tu nueva sonrisa con Inteligencia Artificial.",
+  title: "Smart Forward",
+  description: "AI-Powered Smile Design",
 };
 
 export default function RootLayout({
@@ -25,17 +28,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${outfit.variable} ${inter.variable} antialiased`}
+        className={`${inter.variable} ${outfit.variable} ${spaceGrotesk.variable} font-sans antialiased`}
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
+          <DebugBanner />
           {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
