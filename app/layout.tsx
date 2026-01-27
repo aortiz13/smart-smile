@@ -5,16 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 import { DebugBanner } from "@/components/debug/DebugBanner";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
 
