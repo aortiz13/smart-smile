@@ -69,13 +69,19 @@ Deno.serve(async (req) => {
         // Get absolute URL for the image
         const { data: { publicUrl: imageUrl } } = supabase.storage.from('generated').getPublicUrl(generation.output_path)
 
-        // Download image to send as bytes or just use URL if supported?
-        // Most Google APIs prefer bytes or GCS. For generativelanguage, we'll try inlineData.
+        // Download image to send as bytes
         const imgResponse = await fetch(imageUrl);
-        const imgBlob = await imgResponse.blob();
-        const imgBase64 = btoa(String.fromCharCode(...new Uint8Array(await imgBlob.arrayBuffer())));
+        if (!imgResponse.ok) {
+            throw new Error(`Failed to fetch source image: ${imgResponse.statusText}`);
+        }
 
-        console.log(`Starting video generation for ${lead.name} (${ageRange})...`);
+        const imgBlob = await imgResponse.blob();
+        const arrayBuffer = await imgBlob.arrayBuffer();
+        // Use Buffer for safer/faster base64 encoding (Deno/Supabase support Node Buffer)
+        const imgBase64 = Buffer.from(arrayBuffer).toString('base64');
+        const mimeType = imgBlob.type || 'image/jpeg';
+
+        console.log(`Starting video generation for ${lead.name} (${ageRange})... Image Type: ${mimeType}`);
 
         const aiResponse = await fetch(endpoint, {
             method: 'POST',
@@ -86,7 +92,7 @@ Deno.serve(async (req) => {
                         prompt: scenarioPrompt,
                         image: {
                             bytesBase64Encoded: imgBase64,
-                            mimeType: "image/jpeg"
+                            mimeType: mimeType
                         }
                     }
                 ],
