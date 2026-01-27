@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
 import { Loader2, UploadCloud, Lock, CheckCircle2, AlertCircle, Video, PlayCircle } from "lucide-react";
+import { toast } from "sonner";
 import { validateImageStrict, analyzeImageAndGeneratePrompts, generateSmileVariation } from "@/app/services/gemini";
 import { uploadScan } from "@/app/services/storage";
 import { VariationType } from "@/types/gemini";
