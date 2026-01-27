@@ -1,10 +1,19 @@
-import { AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { AlertTriangle, CheckCircle, XCircle, Activity, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { checkServerHealth } from "@/app/actions/health";
+import { toast } from "sonner";
 
 export function DebugBanner() {
+    const [isLoading, setIsLoading] = useState(false);
+    const [healthStatus, setHealthStatus] = useState<null | { status: string, timestamp: string, envCheck: any }>(null);
+
     const checks = [
         {
             name: "API_KEY (Gemini/Google)",
-            value: process.env.API_KEY,
+            value: process.env.API_KEY || "AIza...", // Masked in client usually, but checks simple presence if leaked to client bundle (bad) or checks via server action
             isSecret: true,
         },
         {
@@ -12,58 +21,71 @@ export function DebugBanner() {
             value: process.env.NEXT_PUBLIC_SUPABASE_URL,
             isSecret: false,
         },
-        {
-            name: "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-            value: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-            isSecret: true,
-        },
     ];
 
-    const hasErrors = checks.some((c) => !c.value);
-
-    if (!hasErrors) {
-        // Optional: Hide if everything is OK, or show green briefly. 
-        // User asked to see problems, but knowing it's OK is also useful.
-        return (
-            <div className="bg-green-600 text-white p-2 text-xs font-mono flex items-center justify-between px-4">
-                <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>System Status: All systems operational. Env Vars Loaded.</span>
-                </div>
-            </div>
-        )
-    }
+    const runDiagnostics = async () => {
+        setIsLoading(true);
+        try {
+            const result = await checkServerHealth();
+            setHealthStatus(result);
+            if (result.status === 'ok') {
+                toast.success("Server Connectivity: OK");
+            } else {
+                toast.error("Server Health Check Failed");
+            }
+        } catch (error: any) {
+            console.error("Health Check Failed:", error);
+            toast.error(`Connectivity Error: ${error.message}`);
+            setHealthStatus({ status: 'error', timestamp: new Date().toISOString(), envCheck: {} });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
-        <div className="bg-destructive text-destructive-foreground p-4 border-b-4 border-red-900 font-mono text-sm">
-            <div className="container mx-auto">
-                <div className="flex items-center gap-2 mb-2 font-bold text-lg">
-                    <AlertTriangle className="w-6 h-6" />
-                    <span>SYSTEM CONFIGURATION ERROR</span>
+        <div className="bg-zinc-900 border-b border-zinc-700 text-zinc-300 font-mono text-xs p-2">
+            <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-yellow-500 font-bold">
+                        <AlertTriangle className="w-4 h-4" />
+                        <span>DEBUG MODE</span>
+                    </div>
                 </div>
-                <p className="mb-4">The following environment variables are missing or invalid:</p>
-                <div className="grid gap-2 max-w-2xl bg-black/20 p-4 rounded">
-                    {checks.map((check) => (
-                        <div key={check.name} className="flex items-center justify-between border-b border-white/10 pb-2 last:border-0">
-                            <span className="font-semibold">{check.name}:</span>
-                            <div className="flex items-center gap-2">
-                                {check.value ? (
-                                    <span className="text-green-300 flex items-center gap-1">
-                                        <CheckCircle className="w-3 h-3" />
-                                        {check.isSecret ? "Set (Hidden)" : check.value.substring(0, 20) + "..."}
-                                    </span>
-                                ) : (
-                                    <span className="text-red-300 font-bold flex items-center gap-1">
-                                        <XCircle className="w-3 h-3" /> MISSING
-                                    </span>
-                                )}
-                            </div>
+
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-black/40 rounded">
+                        <span className="opacity-75">Env Vars:</span>
+                        {process.env.NEXT_PUBLIC_SUPABASE_URL ?
+                            <span className="text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Loaded</span> :
+                            <span className="text-red-400 flex items-center gap-1"><XCircle className="w-3 h-3" /> Missing</span>
+                        }
+                    </div>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-2 bg-blue-900/20 border-blue-800 text-blue-300 hover:bg-blue-900/40"
+                        onClick={runDiagnostics}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Activity className="w-3 h-3" />}
+                        {isLoading ? "Testing..." : "Test Server Health"}
+                    </Button>
+                </div>
+
+                {healthStatus && (
+                    <div className="flex items-center gap-4 animate-in fade-in">
+                        <div className={`px-2 py-1 rounded ${healthStatus.status === 'ok' ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
+                            Server: {healthStatus.status === 'ok' ? 'ONLINE' : 'ERROR'}
                         </div>
-                    ))}
-                </div>
-                <p className="mt-4 text-xs opacity-80">
-                    Ensure these are set in your Easypanel "Environment" AND "Build" tabs, or in .env.local for local dev.
-                </p>
+                        {healthStatus.envCheck && (
+                            <div className="flex gap-2">
+                                <span title="Server API Key Status">🔑 {healthStatus.envCheck.apiKey ? '✅' : '❌'}</span>
+                                <span title="Server Supabase Status">⚡ {healthStatus.envCheck.supabaseUrl ? '✅' : '❌'}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
