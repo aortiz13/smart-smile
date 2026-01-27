@@ -247,12 +247,11 @@ export const analyzeImageAndGeneratePrompts = async (base64Image: string): Promi
                 throw new Error(`Analysis Failed: ${error.message || "Unknown error"}`);
             }
         }
-    }
         throw new Error("Analysis failed after retries.");
-} catch (criticalError: any) {
-    console.error("[Gemini Analysis] Fatal Error:", criticalError);
-    throw new Error(`Analysis System Failure: ${criticalError.message || "Unknown error"}`);
-}
+    } catch (criticalError: any) {
+        console.error("[Gemini Analysis] Fatal Error:", criticalError);
+        throw new Error(`Analysis System Failure: ${criticalError.message || "Unknown error"}`);
+    }
 };
 
 // Validate Generated Image
@@ -364,12 +363,11 @@ export const generateSmileVariation = async (
                 throw new Error(`Generation Failed: ${error.message || "Unknown error"}`);
             }
         }
-    }
         throw new Error("Image generation failed after multiple retries.");
-} catch (criticalGenError: any) {
-    console.error("[Gemini Generation] Fatal Error:", criticalGenError);
-    throw new Error(`Image Generation System Failure: ${criticalGenError.message || "Unknown error"}`);
-}
+    } catch (criticalGenError: any) {
+        console.error("[Gemini Generation] Fatal Error:", criticalGenError);
+        throw new Error(`Image Generation System Failure: ${criticalGenError.message || "Unknown error"}`);
+    }
 };
 
 // Generate Video
