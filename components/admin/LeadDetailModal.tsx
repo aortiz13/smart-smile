@@ -349,7 +349,7 @@ export function LeadDetailModal({ lead, open, onOpenChange, onLeadUpdated }: Lea
                             <div className="absolute inset-0 bg-zinc-950 z-20 flex items-center justify-center p-4">
                                 <div className="relative h-full w-full max-w-[500px] aspect-[9/16] rounded-xl overflow-hidden shadow-2xl border border-white/10">
                                     <video
-                                        src={`${supabaseUrl}/storage/v1/object/public/generations/${videoGen.output_path}`}
+                                        src={`${supabaseUrl}/storage/v1/object/public/generated/${videoGen.output_path}`}
                                         className="w-full h-full object-cover"
                                         controls
                                         autoPlay
