@@ -42,6 +42,7 @@ export default function WidgetContainer() {
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
+    const [userId, setUserId] = useState<string>("anon");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Scanning Animation Variants
@@ -134,8 +135,9 @@ export default function WidgetContainer() {
 
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
-            const userId = user?.id || 'anon_' + crypto.randomUUID();
-            formData.append('userId', userId);
+            const currentUserId = user?.id || 'anon_' + crypto.randomUUID();
+            setUserId(currentUserId);
+            formData.append('userId', currentUserId);
 
             const uploadResponse = await uploadScan(formData);
             if (!uploadResponse.success) {
@@ -330,7 +332,7 @@ export default function WidgetContainer() {
                                           ${naturalVariation.prompt_data.Refining_Details || ''}
                                         `;
 
-                                        const imageUrl = await generateSmileVariation(base64, prompt, "9:16");
+                                        const imageUrl = await generateSmileVariation(base64, prompt, "9:16", userId);
 
                                         setGeneratedImage(imageUrl);
                                         setStep("LOCKED_RESULT");

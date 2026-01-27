@@ -3,6 +3,7 @@
 import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { AnalysisResponse, VariationType } from "@/types/gemini";
 import { logApiUsage, checkVideoQuota, markVideoQuotaUsed } from "./backendService";
+import { uploadGeneratedImage } from "./storage";
 
 // Models
 // Verified working: gemini-2.0-flash
@@ -332,7 +333,8 @@ export const validateGeneratedImage = async (base64Image: string): Promise<boole
 export const generateSmileVariation = async (
     inputImageBase64: string,
     variationPrompt: string,
-    aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1"
+    aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1",
+    userId: string = "anon"
 ): Promise<string> => {
     console.log("[Gemini] generateSmileVariation STARTED");
     console.log("[Gemini] Prompt Length:", variationPrompt.length);
@@ -377,7 +379,6 @@ export const generateSmileVariation = async (
             });
 
             console.log("[Gemini] API Response received.");
-            // console.log("[Gemini] Candidates:", JSON.stringify(response.candidates)); // Be careful logging large objects
 
             const candidates = response.candidates || [];
             if (candidates.length === 0) {
@@ -390,7 +391,14 @@ export const generateSmileVariation = async (
                     console.log("[Gemini] SUCCESS: Inline image data found.");
                     await logApiUsage('NANO_BANANA_IMAGE');
                     const outMime = part.inlineData.mimeType || "image/png";
-                    return `data:${outMime};base64,${part.inlineData.data}`;
+                    const base64Result = `data:${outMime};base64,${part.inlineData.data}`;
+
+                    // Upload to Supabase to prevent Payload Too Large (500) errors
+                    console.log("[Gemini] Uploading result to storage...");
+                    const publicUrl = await uploadGeneratedImage(base64Result, userId, "variation");
+                    console.log("[Gemini] Upload complete:", publicUrl);
+
+                    return publicUrl;
                 }
             }
 
@@ -463,6 +471,7 @@ export const generateVeoVideo = async (
 
     try {
         // Note: generateVideos might need a different import or client setup depending on SDK version
+        // Assuming models.generateVideos exists or is accessible in current SDK version setup
         let operation = await ai.models.generateVideos({
             model: VIDEO_MODEL, // "veo-..."
             prompt: fullPrompt,
