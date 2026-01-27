@@ -600,6 +600,44 @@ export default function WidgetContainer() {
                             </div>
                         </motion.div>
                     )}
+
+                    {/* VERIFICATION STEP */}
+                    {step === "VERIFICATION" && (
+                        <motion.div
+                            key="verification"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="h-full flex flex-col items-center justify-center p-6 space-y-8"
+                        >
+                            <div className="bg-primary/5 p-4 rounded-full">
+                                <Video className="w-12 h-12 text-primary" />
+                            </div>
+
+                            <div className="text-center space-y-4 max-w-sm">
+                                <h2 className="text-2xl font-heading font-bold">Solicitud de Vídeo</h2>
+                                <p className="text-sm text-balance text-muted-foreground leading-relaxed">
+                                    Para mantener la calidad del servicio, los vídeos <strong>Smile Forward</strong> se generan de forma personalizada y se entregan solo a solicitudes verificadas.
+                                </p>
+                                <p className="text-sm text-balance text-muted-foreground leading-relaxed">
+                                    Para verificar su solicitud, envíenos un WhatsApp haciendo clic en el siguiente botón.
+                                </p>
+                            </div>
+
+                            <Button
+                                className="w-full max-w-xs h-14 text-lg font-bold rounded-2xl shadow-xl bg-green-600 hover:bg-green-700 text-white gap-2"
+                                onClick={() => {
+                                    window.open(`https://wa.me/34600000000?text=${encodeURIComponent("Hola, me gustaría verificar mi solicitud de vídeo Smile Forward.")}`, '_blank');
+                                }}
+                            >
+                                <Share2 className="w-6 h-6" />
+                                Verificar solicitud
+                            </Button>
+
+                            <Button variant="ghost" size="sm" onClick={() => setStep("RESULT")}>
+                                Volver al resultado
+                            </Button>
+                        </motion.div>
+                    )}
                 </AnimatePresence>
             </main>
         </div >
