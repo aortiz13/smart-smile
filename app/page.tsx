@@ -55,7 +55,7 @@ export default function Home() {
                 <div className="w-3 h-3 rounded-full bg-red-400/80"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-400/80"></div>
                 <div className="w-3 h-3 rounded-full bg-green-400/80"></div>
-                <span className="ml-2 text-xs font-mono text-muted-foreground uppercase tracking-widest pl-2 border-l">Live Demo</span>
+                <span className="ml-2 text-xs font-mono text-muted-foreground uppercase tracking-widest pl-2 border-l">Live Experience</span>
               </div>
             </div>
 

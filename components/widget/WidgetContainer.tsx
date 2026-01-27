@@ -516,12 +516,12 @@ export default function WidgetContainer() {
                                                 setStep("SURVEY");
                                             }}
                                         >
-                                            <Video className="w-5 h-5 text-primary" /> Generar Video (Beta)
+                                            <Video className="w-5 h-5 text-primary" /> Generar Video
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogHeader>
-                                            <DialogTitle>Video Generativo (Beta)</DialogTitle>
+                                            <DialogTitle>Video Generativo</DialogTitle>
                                             <DialogDescription>Crea un video hablando con tu nueva sonrisa.</DialogDescription>
                                         </DialogHeader>
                                         <div className="py-4 text-center text-sm text-muted-foreground">Próximamente disponible.</div>
