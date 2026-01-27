@@ -30,7 +30,7 @@ export default function EmbedConfigurator() {
                     Insertar Widget
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[95vw] w-full h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
+            <DialogContent className="!max-w-[95vw] w-full h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
                 {!embedType ? (
                     <EmbedSelection onSelect={setEmbedType} />
                 ) : (
