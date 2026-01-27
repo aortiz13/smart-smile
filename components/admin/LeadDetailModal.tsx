@@ -157,7 +157,7 @@ export function LeadDetailModal({ lead, open, onOpenChange, onLeadUpdated }: Lea
     };
 
     // Find linked generation (prioritize image)
-    const generation = lead.generations?.find((g: any) => g.type === 'image');
+    const generation = lead.generations?.find((g: any) => g.type === 'image' && g.status === 'completed');
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
