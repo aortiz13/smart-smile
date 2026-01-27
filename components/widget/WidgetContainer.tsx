@@ -457,7 +457,7 @@ export default function WidgetContainer() {
                             animate={{ opacity: 1 }}
                             className="h-full flex flex-col items-center gap-4"
                         >
-                            <div className="relative w-full max-w-[320px] md:max-w-md aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl border border-primary/20 bg-black">
+                            <div className="relative w-full max-w-[280px] aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl border border-primary/20 bg-black">
                                 {generatedImage && image ? (
                                     <BeforeAfterSlider
                                         beforeImage={URL.createObjectURL(image)}
