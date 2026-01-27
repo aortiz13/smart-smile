@@ -4,40 +4,43 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Brand Palette: Clean, Medical, Spa-like (Teal/Emerald/Slate) */
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  /* Brand Palette: Clean, Medical, Spa-like (Teal/Emerald/Slate)  :root {
+    /* Fondo #fafafa */
+  --background: 0 0% 98%;
+  /* Menú #333333 */
+  --foreground: 0 0% 20%;
 
+  /* Card could be white or same as background */
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 0 0% 20%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
+  --popover-foreground: 0 0% 20%;
 
-  --primary: 173 58% 39%;
-  /* #2A9D8F (Persian Green/Teal) - Trust & Calm */
-  --primary-foreground: 210 40% 98%;
+  /* Botones #7f8b81 */
+  --primary: 133 6% 52%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
+  /* Secondary #f0f0e7 */
+  --secondary: 72 18% 92%;
+  --secondary-foreground: 0 0% 20%;
 
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  /* Footer/Muted #cfd2cc */
+  --muted: 150 6% 81%;
+  --muted-foreground: 0 0% 40%;
 
-  --accent: 173 58% 95%;
-  /* Light Teal tint */
-  --accent-foreground: 222.2 47.4% 11.2%;
+  /* Accent #b6b2a7 */
+  --accent: 43 8% 68%;
+  --accent-foreground: 0 0% 20%;
 
   --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive-foreground: 0 0% 98%;
 
-  /* Specific UI Request: Input Border #b6b2a7 -> 40 8% 68% */
-  --border: 40 8% 68%;
-  --input: 40 8% 68%;
-  /* Focus/Ring #7f8b81 -> 132 5% 52% */
-  --ring: 132 5% 52%;
+  --border: 150 6% 81%;
+  --input: 150 6% 81%;
+  --ring: 133 6% 52%;
 
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 }
 
 .dark {
