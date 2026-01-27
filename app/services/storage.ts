@@ -45,96 +45,115 @@ export const uploadScan = async (formData: FormData): Promise<string> => {
  * We can do the same here using Server Actions.
  */
 export const uploadGeneratedImage = async (imageUrlOrBase64: string, userId: string, type: string): Promise<string> => {
-    const supabase = await createClient();
-    const fileName = `${userId}/${Date.now()}_${type}.png`;
+    try {
+        const supabase = await createClient();
+        const fileName = `${userId}/${Date.now()}_${type}.png`;
 
-    let blob: Blob;
+        let blob: Blob;
 
-    if (imageUrlOrBase64.startsWith('data:')) {
-        // Base64
-        const base64Data = imageUrlOrBase64.split(',')[1];
-        const buffer = Buffer.from(base64Data, 'base64');
-        blob = new Blob([buffer], { type: 'image/png' });
-    } else {
-        // URL
-        const res = await fetch(imageUrlOrBase64);
-        blob = await res.blob();
+        if (imageUrlOrBase64.startsWith('data:')) {
+            // Base64
+            const base64Data = imageUrlOrBase64.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+            blob = new Blob([buffer], { type: 'image/png' });
+        } else {
+            // URL
+            const res = await fetch(imageUrlOrBase64);
+            blob = await res.blob();
+        }
+
+        const { error: uploadError } = await supabase.storage
+            .from('generated')
+            .upload(fileName, blob, {
+                contentType: 'image/png'
+            });
+
+        if (uploadError) {
+            console.error("Failed to upload generated image:", uploadError);
+            return imageUrlOrBase64; // Fallback
+        }
+
+        const { data } = supabase.storage.from('generated').getPublicUrl(fileName);
+        return data.publicUrl;
+    } catch (error) {
+        console.error("Critical Error in uploadGeneratedImage:", error);
+        return imageUrlOrBase64; // Fail safe return original URL
     }
-
-    const { error: uploadError } = await supabase.storage
-        .from('generated')
-        .upload(fileName, blob, {
-            contentType: 'image/png'
-        });
-
-    if (uploadError) {
-        console.error("Failed to upload generated image:", uploadError);
-        return imageUrlOrBase64; // Fallback
-    }
-
-    const { data } = supabase.storage.from('generated').getPublicUrl(fileName);
-    return data.publicUrl;
 };
 
 export const saveSession = async (session: SmileSession, userId: string): Promise<void> => {
-    const supabase = await createClient();
-    const { error } = await supabase
-        .from('sessions')
-        .insert({
-            id: session.id,
-            user_id: userId,
-            original_image_url: session.originalImage,
-            analysis_data: session.analysis,
-            results: session.results,
-            created_at: new Date(session.createdAt).toISOString()
-        });
+    try {
+        const supabase = await createClient();
+        const { error } = await supabase
+            .from('sessions')
+            .insert({
+                id: session.id,
+                user_id: userId,
+                original_image_url: session.originalImage,
+                analysis_data: session.analysis,
+                results: session.results,
+                created_at: new Date(session.createdAt).toISOString()
+            });
 
-    if (error) {
-        console.error("Failed to save session:", error);
-        throw error;
+        if (error) {
+            console.error("Failed to save session:", error);
+            // Don't throw, just log. We don't want to break the user flow if saving history fails.
+        }
+    } catch (error) {
+        console.error("Critical Error in saveSession:", error);
     }
 };
 
 export const getLastSession = async (userId: string): Promise<SmileSession | null> => {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('user_id', userId) // Check if 'user_id' matches schema column name
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('sessions')
+            .select('*')
+            .eq('user_id', userId) // Check if 'user_id' matches schema column name
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
 
-    if (error || !data) {
-        return null;
+        if (error || !data) {
+            return null;
+        }
+
+        return {
+            id: data.id,
+            originalImage: data.original_image_url,
+            analysis: data.analysis_data,
+            results: data.results,
+            createdAt: new Date(data.created_at).getTime()
+        };
+    } catch (error) {
+        console.error("Critical Error in getLastSession:", error);
+        return null; // Return null safely
     }
-
-    return {
-        id: data.id,
-        originalImage: data.original_image_url,
-        analysis: data.analysis_data,
-        results: data.results,
-        createdAt: new Date(data.created_at).getTime()
-    };
 };
 
 export const getAllSessions = async (userId: string): Promise<SmileSession[]> => {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('sessions')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
 
-    if (error || !data) {
+        if (error || !data) {
+            return [];
+        }
+
+        return data.map(row => ({
+            id: row.id,
+            originalImage: row.original_image_url,
+            analysis: row.analysis_data,
+            results: row.results,
+            createdAt: new Date(row.created_at).getTime()
+        }));
+    } catch (error) {
+        console.error("Critical Error in getAllSessions:", error);
         return [];
     }
-
-    return data.map(row => ({
-        id: row.id,
-        originalImage: row.original_image_url,
-        analysis: row.analysis_data,
-        results: row.results,
-        createdAt: new Date(row.created_at).getTime()
-    }));
 };
