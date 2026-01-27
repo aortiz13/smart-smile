@@ -334,71 +334,73 @@ export const generateSmileVariation = async (
     variationPrompt: string,
     aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1"
 ): Promise<string> => {
-    console.log("[Gemini] generateSmileVariation called for prompt:", variationPrompt.slice(0, 50));
+    console.log("[Gemini] generateSmileVariation STARTED");
+    console.log("[Gemini] Prompt Length:", variationPrompt.length);
+    console.log("[Gemini] Image Length:", inputImageBase64.length);
+
     try {
         const apiKey = process.env.API_KEY;
         if (!apiKey) {
-            console.error("[Gemini Generation] Missing API_KEY");
-            throw new Error("Server configuration error: API_KEY missing");
+            console.error("[Gemini] CRITICAL: API_KEY is missing in env");
+            throw new Error("Configuration Error: API Key missing.");
         }
 
         const ai = new GoogleGenAI({ apiKey });
         const mimeType = getMimeType(inputImageBase64);
         const data = stripBase64Prefix(inputImageBase64);
 
-        // Validated working model via scripts/test-image-gen.ts
+        // Use verified model
         const model = "gemini-3-pro-image-preview";
+        console.log(`[Gemini] Using model: ${model}`);
 
-        let attempts = 0;
-        const maxRetries = 3;
+        // Direct call without retry loop for debugging
+        console.log("[Gemini] Calling ai.models.generateContent...");
 
-        while (attempts < maxRetries) {
-            try {
-                // Using generateContent with image input + text prompt for "image-to-image" style generation
-                // The model 'gemini-3-pro-image-preview' supports this via generateContent.
-                const response = await ai.models.generateContent({
-                    model: model,
-                    contents: {
-                        parts: [
-                            { inlineData: { mimeType, data } },
-                            { text: variationPrompt }
-                        ]
-                    }
-                });
-
-                // Check for inline image data in response
-                for (const part of response.candidates?.[0]?.content?.parts || []) {
-                    if (part.inlineData) {
-                        await logApiUsage('NANO_BANANA_IMAGE');
-                        // Default to png if not specified, usually standard for genai
-                        const outMime = part.inlineData.mimeType || "image/png";
-                        return `data:${outMime};base64,${part.inlineData.data}`;
-                    }
+        try {
+            const response = await ai.models.generateContent({
+                model: model,
+                contents: {
+                    parts: [
+                        { inlineData: { mimeType, data } },
+                        { text: variationPrompt }
+                    ]
                 }
+            });
 
-                // If text response, logging it for debugging
-                if (response.text) {
-                    console.log("Model returned text instead of image:", response.text);
-                }
+            console.log("[Gemini] API Response received.");
+            // console.log("[Gemini] Candidates:", JSON.stringify(response.candidates)); // Be careful logging large objects
 
-                throw new Error("No image data found in generation response.");
-
-            } catch (error: any) {
-                attempts++;
-                if (isModelOverloaded(error) && attempts < maxRetries) {
-                    const waitTime = 3000 * Math.pow(2, attempts - 1);
-                    await delay(waitTime);
-                    continue;
-                }
-                console.error("Image generation failed:", error);
-                // Friendly error if possible
-                throw new Error(`Generation Failed: ${error.message || "Unknown error"}`);
+            const candidates = response.candidates || [];
+            if (candidates.length === 0) {
+                console.error("[Gemini] No candidates returned. Safety block?", JSON.stringify(response));
+                throw new Error("AI returned no results. Possibly blocked by safety filters.");
             }
+
+            for (const part of candidates[0].content?.parts || []) {
+                if (part.inlineData) {
+                    console.log("[Gemini] SUCCESS: Inline image data found.");
+                    await logApiUsage('NANO_BANANA_IMAGE');
+                    const outMime = part.inlineData.mimeType || "image/png";
+                    return `data:${outMime};base64,${part.inlineData.data}`;
+                }
+            }
+
+            if (response.text) {
+                console.error("[Gemini] Model returned text instead of image:", response.text);
+                throw new Error(`AI generated text instead of image: ${response.text.slice(0, 100)}...`);
+            }
+
+            throw new Error("Response contained neither image nor text.");
+
+        } catch (apiError: any) {
+            console.error("[Gemini] API CALL FAILED:", apiError);
+            console.error("[Gemini] Error Details:", JSON.stringify(apiError, null, 2));
+            throw new Error(`Google AI Error: ${apiError.message || "Unknown API failure"}`);
         }
-        throw new Error("Image generation failed after multiple retries.");
+
     } catch (criticalGenError: any) {
-        console.error("[Gemini Generation] Fatal Error:", criticalGenError);
-        throw new Error(`Error generando imagen: ${criticalGenError.message?.slice(0, 100) || "Intenta de nuevo."}`);
+        console.error("[Gemini] FATAL ERROR in generateSmileVariation:", criticalGenError);
+        throw new Error(`Error Fatal Generando Imagen: ${criticalGenError.message}`);
     }
 };
 
