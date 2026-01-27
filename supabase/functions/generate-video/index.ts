@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Buffer } from 'node:buffer'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -144,7 +145,7 @@ Deno.serve(async (req) => {
             .insert({
                 lead_id: lead_id,
                 type: 'video',
-                status: 'pending',
+                status: 'processing',
                 input_path: generation.output_path,
                 metadata: {
                     operation_name: operationName,
