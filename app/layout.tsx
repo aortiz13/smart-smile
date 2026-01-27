@@ -15,7 +15,10 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Smart Forward",
