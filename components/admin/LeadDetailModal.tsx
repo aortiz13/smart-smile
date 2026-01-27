@@ -155,7 +155,7 @@ export function LeadDetailModal({ lead, open, onOpenChange, onLeadUpdated }: Lea
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-6xl w-full h-[90vh] sm:h-[80vh] overflow-hidden flex flex-col p-0 gap-0">
+            <DialogContent className="max-w-7xl w-full h-[90vh] sm:h-[80vh] overflow-hidden flex flex-col p-0 gap-0">
                 <div className="p-6 border-b flex-none bg-background">
                     <DialogHeader className="flex flex-row items-center justify-between space-y-0">
                         <div>
