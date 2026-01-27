@@ -120,12 +120,14 @@ export default function WidgetContainer() {
                 return;
             }
 
-            // 2. Upload to Storage (Server Action wrapper or Client)
+            // 2. Upload to Storage (Server Action wrapper)
+            // Fix: Use the COMPRESSED image for storage to avoid payload limits.
+            const compressedBlob = await (await fetch(base64)).blob();
+            const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
+
             const formData = new FormData();
-            formData.append('file', file);
-            // We need a userId. For now, using a temp ID if not auth, or fetch user. 
-            // In the prototype it passed userId. Here we might be anon.
-            // Let's use a random ID for anonymous uploads or check auth.
+            formData.append('file', compressedFile);
+
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
             const userId = user?.id || 'anon_' + crypto.randomUUID();
