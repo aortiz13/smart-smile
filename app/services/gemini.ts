@@ -105,7 +105,7 @@ export const validateImageStrict = async (base64Image: string): Promise<{ isVali
         ) {
             throw error;
         }
-        return { isValid: false, reason: "Error de conexión con el servicio de validación." };
+        return { isValid: false, reason: `Error: ${error.message || "Error desconocido"}` };
     }
 };
 
