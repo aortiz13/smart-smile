@@ -47,7 +47,7 @@ export default function Home() {
           {/* Background Glow */}
           <div className="absolute -inset-1 bg-gradient-to-r from-primary to-cyan-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 animate-pulse"></div>
 
-          <Card className="relative border-border/50 shadow-2xl overflow-hidden bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm">
+          <Card className="relative border-border/50 shadow-2xl overflow-hidden bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md">
             <div className="absolute inset-0 bg-grid-zinc-900/[0.02] bg-[bottom_1px_center] dark:bg-grid-zinc-400/[0.05]" style={{ maskImage: 'linear-gradient(to bottom, transparent, black)' }}></div>
 
             <div className="relative p-6 bg-muted/30 border-b flex items-center justify-between">
