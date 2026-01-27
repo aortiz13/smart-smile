@@ -4,23 +4,21 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { LeadDetailSheet } from "@/components/admin/LeadDetailSheet";
 
 export default function LeadsPage() {
     const [leads, setLeads] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedLead, setSelectedLead] = useState<any | null>(null);
 
     useEffect(() => {
         const fetchLeads = async () => {
             try {
                 const supabase = createClient();
 
-                // Debug Auth
-                const { data: { session }, error: authError } = await supabase.auth.getSession();
-                console.log("[LeadsPage] Session:", session ? "Active" : "None", authError || "");
-
                 const { data, error } = await supabase
                     .from('leads')
-                    .select('*')
+                    .select('*, generations(*)') // Fetch linked generations
                     .order('created_at', { ascending: false });
 
                 if (error) {
@@ -37,6 +35,13 @@ export default function LeadsPage() {
         };
         fetchLeads();
     }, []);
+
+    const statusLabels: Record<string, string> = {
+        pending: "Pendiente",
+        contacted: "Contactado",
+        converted: "Convertido",
+        rejected: "Rechazado"
+    };
 
     return (
         <div className="p-8 space-y-8">
@@ -79,14 +84,19 @@ export default function LeadsPage() {
                                             <td className="px-6 py-4">{lead.phone}</td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${lead.status === 'converted' ? 'bg-green-100 text-green-700' :
-                                                    lead.status === 'contacted' ? 'bg-blue-100 text-blue-700' :
-                                                        'bg-yellow-100 text-yellow-700'
+                                                        lead.status === 'contacted' ? 'bg-blue-100 text-blue-700' :
+                                                            'bg-yellow-100 text-yellow-700'
                                                     }`}>
-                                                    {lead.status}
+                                                    {statusLabels[lead.status] || lead.status}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <button className="text-primary hover:underline">Ver Detalle</button>
+                                                <button
+                                                    onClick={() => setSelectedLead(lead)}
+                                                    className="text-primary hover:underline font-medium"
+                                                >
+                                                    Ver Detalle
+                                                </button>
                                             </td>
                                         </tr>
                                     ))
@@ -96,6 +106,12 @@ export default function LeadsPage() {
                     </div>
                 )}
             </div>
+
+            <LeadDetailSheet
+                lead={selectedLead}
+                open={!!selectedLead}
+                onOpenChange={(open) => !open && setSelectedLead(null)}
+            />
         </div>
     );
 }
