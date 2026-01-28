@@ -64,8 +64,8 @@ Deno.serve(async (req) => {
         const apiKey = Deno.env.get('GOOGLE_API_KEY')
         if (!apiKey) throw new Error("GOOGLE_API_KEY missing")
 
-        // Endpoint for Veo 3.1
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-fast-generate-preview:predictLongRunning?key=${apiKey}`;
+        // Endpoint for Veo 3.1 - Defined later after scene generation
+        // const endpoint = ...
 
         // Clean path: if it's a full URL, extract the relative path
         let storagePath = generation.output_path;
@@ -107,7 +107,79 @@ Deno.serve(async (req) => {
         const imgBase64 = Buffer.from(arrayBuffer).toString('base64');
         const mimeType = imgBlob.type || 'image/jpeg';
 
+        // ... (lines 1-103 same as before, preserving fetch logic)
+
         console.log(`Starting video generation for ${lead.name} (${ageRange})... Image Type: ${mimeType}`);
+
+        // --- NEW STEP: SCENE GENERATION via Imagen 4 ---
+        console.log("Generating intermediate scene image via Imagen 4...");
+        const imagenEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-fast-generate-001:predict?key=${apiKey}`;
+
+        // Prompt for background replacement (Scene Generation)
+        let bgPrompt = `A photorealistic portrait of the subject in ${ageRange === '18-30' ? "a vibrant green park" : (ageRange === '55+' ? "a warm family dining room" : "a stylish urban rooftop")}. The background is fully visible. The subject maintains their EXACT facial features and smile. High quality, 8k. Background replacement.`;
+
+        let sceneImgBase64 = imgBase64; // Default to original if fails
+        let sceneImgMimeType = mimeType;
+        let scenePath = generation.output_path; // Default
+
+        try {
+            const imagenResponse = await fetch(imagenEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    instances: [
+                        {
+                            prompt: bgPrompt,
+                            image: {
+                                bytesBase64Encoded: imgBase64,
+                                mimeType: mimeType
+                            }
+                        }
+                    ],
+                    parameters: {
+                        sampleCount: 1,
+                        aspectRatio: "9:16",
+                        storageUri: "gs://mock-bucket" // Not used, receiving base64
+                    }
+                })
+            });
+
+            if (imagenResponse.ok) {
+                const imgData = await imagenResponse.json();
+                // Check response structure for Imagen 4 - typically predictions[0].bytesBase64Encoded
+                if (imgData.predictions?.[0]?.bytesBase64Encoded) {
+                    sceneImgBase64 = imgData.predictions[0].bytesBase64Encoded;
+                    sceneImgMimeType = imgData.predictions[0].mimeType || 'image/png';
+                    console.log("Scene image generated successfully.");
+
+                    // Upload SCENE image to storage to inspect it / use it
+                    const sceneFileName = `${generation.output_path.split('/').pop()?.split('.')[0]}_scene.png`;
+                    const sceneBuffer = Buffer.from(sceneImgBase64, 'base64');
+
+                    const { data: uploadData, error: uploadError } = await supabase
+                        .storage
+                        .from('generated')
+                        .upload(`${lead_id}/${sceneFileName}`, sceneBuffer, {
+                            contentType: sceneImgMimeType,
+                            upsert: true
+                        });
+
+                    if (!uploadError && uploadData) {
+                        scenePath = uploadData.path;
+                        console.log(`Scene image uploaded to: ${scenePath}`);
+                    }
+                }
+            } else {
+                console.warn(`Imagen 4 generation failed: ${await imagenResponse.text()}`);
+                // Fallback to original image, Veo will try.
+            }
+        } catch (err) {
+            console.error("Error generating scene image:", err);
+        }
+
+        // --- CALL VEO WITH SCENE IMAGE ---
+        // Use Veo Preview as per revert decision
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-fast-generate-preview:predictLongRunning?key=${apiKey}`;
 
         const aiResponse = await fetch(endpoint, {
             method: 'POST',
@@ -117,16 +189,16 @@ Deno.serve(async (req) => {
                     {
                         prompt: scenarioPrompt,
                         image: {
-                            bytesBase64Encoded: imgBase64,
-                            mimeType: mimeType
+                            bytesBase64Encoded: sceneImgBase64, // Use the NEW scene image
+                            mimeType: sceneImgMimeType
                         }
                     }
                 ],
                 parameters: {
                     sampleCount: 1,
                     aspectRatio: "9:16",
-                    resolution: "1080p",
-                    durationSeconds: 5,
+                    resolution: "1080p", // Keeping param
+                    durationSeconds: 5,  // Keeping param
                     negativePrompt: negativePrompt
                 }
             })
