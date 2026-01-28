@@ -389,7 +389,17 @@ export default function WidgetContainer() {
                         >
                             <div className="relative w-full max-w-[380px] aspect-[9/16] bg-zinc-100 dark:bg-zinc-900 rounded-[2rem] overflow-hidden shadow-2xl group">
                                 {generatedImage ? (
-                                    <img src={generatedImage} alt="Preview" className="w-full h-full object-cover" />
+                                    <>
+                                        <img src={generatedImage} alt="Preview" className="w-full h-full object-cover" />
+                                        {/* Watermark Overlay */}
+                                        <div className="absolute inset-0 flex items-center justify-center p-6 z-10 pointer-events-none opacity-80">
+                                            <img
+                                                src="https://dentalcorbella.com/wp-content/uploads/2023/07/logo-white-trans2.png"
+                                                alt="Watermark"
+                                                className="w-full opacity-60 drop-shadow-md rotate-[-20deg]"
+                                            />
+                                        </div>
+                                    </>
                                 ) : null}
                             </div>
 
