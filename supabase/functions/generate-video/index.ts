@@ -138,43 +138,45 @@ Deno.serve(async (req) => {
                     ],
                     parameters: {
                         sampleCount: 1,
-                        aspectRatio: "9:16",
-                        storageUri: "gs://mock-bucket" // Not used, receiving base64
+                        aspectRatio: "9:16"
                     }
                 })
             });
 
-            if (imagenResponse.ok) {
-                const imgData = await imagenResponse.json();
-                // Check response structure for Imagen 4 - typically predictions[0].bytesBase64Encoded
-                if (imgData.predictions?.[0]?.bytesBase64Encoded) {
-                    sceneImgBase64 = imgData.predictions[0].bytesBase64Encoded;
-                    sceneImgMimeType = imgData.predictions[0].mimeType || 'image/png';
-                    console.log("Scene image generated successfully.");
+            if (!imagenResponse.ok) {
+                const errText = await imagenResponse.text();
+                console.error(`Imagen 4 generation failed: ${errText}`);
+                throw new Error(`Scene Generation Failed: ${errText}`);
+            }
 
-                    // Upload SCENE image to storage to inspect it / use it
-                    const sceneFileName = `${generation.output_path.split('/').pop()?.split('.')[0]}_scene.png`;
-                    const sceneBuffer = Buffer.from(sceneImgBase64, 'base64');
+            const imgData = await imagenResponse.json();
+            if (imgData.predictions?.[0]?.bytesBase64Encoded) {
+                sceneImgBase64 = imgData.predictions[0].bytesBase64Encoded;
+                sceneImgMimeType = imgData.predictions[0].mimeType || 'image/png';
+                console.log("Scene image generated successfully.");
 
-                    const { data: uploadData, error: uploadError } = await supabase
-                        .storage
-                        .from('generated')
-                        .upload(`${lead_id}/${sceneFileName}`, sceneBuffer, {
-                            contentType: sceneImgMimeType,
-                            upsert: true
-                        });
+                const sceneFileName = `${generation.output_path.split('/').pop()?.split('.')[0]}_scene.png`;
+                const sceneBuffer = Buffer.from(sceneImgBase64, 'base64');
 
-                    if (!uploadError && uploadData) {
-                        scenePath = uploadData.path;
-                        console.log(`Scene image uploaded to: ${scenePath}`);
-                    }
+                const { data: uploadData, error: uploadError } = await supabase
+                    .storage
+                    .from('generated')
+                    .upload(`${lead_id}/${sceneFileName}`, sceneBuffer, {
+                        contentType: sceneImgMimeType,
+                        upsert: true
+                    });
+
+                if (!uploadError && uploadData) {
+                    scenePath = uploadData.path; // Correctly update path
+                    console.log(`Scene image uploaded to: ${scenePath}`);
                 }
             } else {
-                console.warn(`Imagen 4 generation failed: ${await imagenResponse.text()}`);
-                // Fallback to original image, Veo will try.
+                throw new Error("Imagen 4 returned no image data.");
             }
+
         } catch (err) {
-            console.error("Error generating scene image:", err);
+            console.error("Critical Error in Scene Generation step:", err);
+            throw err; // ABORT Video Generation if Scene fails
         }
 
         // --- CALL VEO WITH SCENE IMAGE ---
@@ -220,7 +222,7 @@ Deno.serve(async (req) => {
                 lead_id: lead_id,
                 type: 'video',
                 status: 'processing',
-                input_path: generation.output_path,
+                input_path: scenePath, // Enforce using the scene path
                 metadata: {
                     operation_name: operationName,
                     scenario: ageRange,
