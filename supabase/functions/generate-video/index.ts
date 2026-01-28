@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
                     sampleCount: 1,
                     aspectRatio: "9:16",
                     resolution: "1080p",
-                    durationSeconds: 5,
+                    durationSeconds: 8,
                     negativePrompt: negativePrompt
                 }
             })
