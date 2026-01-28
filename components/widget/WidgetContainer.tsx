@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
-import { Loader2, UploadCloud, Lock, CheckCircle2, Video, PlayCircle, Sparkles, ScanFace, FileSearch, Wand2, Share2 } from "lucide-react";
+import { Loader2, UploadCloud, Lock, Check, Video, PlayCircle, Sparkles, ScanFace, FileSearch, Wand2, Share2, MessageCircle, Send, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { validateImageStrict, analyzeImageAndGeneratePrompts, generateSmileVariation } from "@/app/services/gemini";
 import { uploadScan } from "@/app/services/storage";
@@ -262,7 +262,7 @@ export default function WidgetContainer() {
             className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${active ? 'bg-primary/10 border-primary/20' : 'bg-transparent border-transparent'} ${completed ? 'text-muted-foreground' : 'text-foreground'}`}
         >
             <div className={`p-2 rounded-full flex-shrink-0 ${completed ? 'bg-green-500/20 text-green-500' : active ? 'bg-primary/20 text-primary animate-pulse' : 'bg-muted text-muted-foreground'}`}>
-                {completed ? <CheckCircle2 className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+                {completed ? <Check className="w-4 h-4" strokeWidth={1.5} /> : <Icon className="w-4 h-4" strokeWidth={1.5} />}
             </div>
             <span className={`text-sm font-medium ${active ? 'font-bold' : ''} break-words line-clamp-2`}>{label}</span>
             {active && <Loader2 className="w-3 h-3 ml-auto animate-spin text-primary flex-shrink-0" />}
@@ -305,7 +305,7 @@ export default function WidgetContainer() {
                                 onClick={() => fileInputRef.current?.click()}
                             >
                                 <div className="p-6 bg-white dark:bg-zinc-800 shadow-sm rounded-full mb-6 group-hover:scale-110 transition-transform duration-500">
-                                    <UploadCloud className="w-8 h-8 text-zinc-400 group-hover:text-teal-600 transition-colors" />
+                                    <UploadCloud className="w-8 h-8 text-zinc-400 group-hover:text-teal-600 transition-colors" strokeWidth={1} />
                                 </div>
                                 <h3 className="text-xl font-serif text-black dark:text-white mb-2">Sube tu Selfie</h3>
                                 <p className="text-sm text-zinc-500 max-w-[200px]">Arrastra tu foto aquí o haz clic para explorar</p>
@@ -318,8 +318,8 @@ export default function WidgetContainer() {
                                 />
                             </div>
                             <div className="flex flex-wrap justify-center gap-6 text-xs text-zinc-400 font-sans tracking-wide uppercase">
-                                <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500" /> 100% Privado</span>
-                                <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500" /> Resultados en segundos</span>
+                                <span className="flex items-center gap-2"><Check className="w-4 h-4 text-teal-500" strokeWidth={1.5} /> 100% Privado</span>
+                                <span className="flex items-center gap-2"><Check className="w-4 h-4 text-teal-500" strokeWidth={1.5} /> Resultados en segundos</span>
                             </div>
                         </motion.div>
                     )}
@@ -411,10 +411,10 @@ export default function WidgetContainer() {
 
                                 <Button
                                     onClick={() => setStep("LEAD_FORM")}
-                                    className="w-full h-14 rounded-full bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 text-base font-sans font-medium tracking-wide shadow-lg"
+                                    className="w-full h-14 rounded-full bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 text-base font-sans font-medium tracking-wide shadow-lg gap-2"
                                     size="lg"
                                 >
-                                    Continuar en WhatsApp
+                                    <MessageCircle className="w-5 h-5" strokeWidth={1.5} /> Continuar en WhatsApp
                                 </Button>
                             </div>
                         </motion.div>
@@ -507,7 +507,7 @@ export default function WidgetContainer() {
                                                 setStep("SURVEY");
                                             }}
                                         >
-                                            <Video className="w-4 h-4 mr-2" /> Generar Video Simulación
+                                            <Video className="w-4 h-4 mr-2" strokeWidth={1.5} /> Generar Video Simulación
                                         </Button>
                                     </DialogTrigger>
                                 </Dialog>
@@ -583,7 +583,7 @@ export default function WidgetContainer() {
                             className="h-full flex flex-col items-center justify-center p-6 space-y-8"
                         >
                             <div className="bg-zinc-50 p-6 rounded-full">
-                                <Video className="w-10 h-10 text-zinc-800" />
+                                <Video className="w-10 h-10 text-zinc-800" strokeWidth={1} />
                             </div>
 
                             <div className="text-center space-y-4 max-w-sm">
@@ -599,7 +599,7 @@ export default function WidgetContainer() {
                                     window.open(`https://wa.me/34600000000?text=${encodeURIComponent("Hola, me gustaría verificar mi solicitud de vídeo Smile Forward.")}`, '_blank');
                                 }}
                             >
-                                <Share2 className="w-5 h-5" />
+                                <Share2 className="w-5 h-5" strokeWidth={1.5} />
                                 Verificar en WhatsApp
                             </Button>
 

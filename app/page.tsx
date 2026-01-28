@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ModeToggle } from "@/components/mode-toggle";
 import { useEffect, useState } from "react";
+import { Sparkles, LayoutDashboard, AppWindow } from "lucide-react";
 
 export default function Home() {
   const [lang, setLang] = useState("es"); // Default to Spanish as requested
@@ -53,14 +54,18 @@ export default function Home() {
       <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800">
         <div className="container flex h-20 items-center justify-between px-8">
           <h1 className="text-2xl font-serif tracking-tight flex items-center gap-2 text-black dark:text-white">
-            <span className="text-teal-600">✨</span> Smile Forward
+            <Sparkles className="w-5 h-5 text-teal-600" strokeWidth={1} /> Smile Forward
           </h1>
           <div className="flex items-center gap-4">
             <Link href="/admin/dashboard" className="hidden md:block">
-              <Button variant="ghost" size="sm" className="rounded-full font-sans tracking-wide uppercase text-xs text-zinc-500 hover:text-black hover:bg-zinc-100">{t.admin}</Button>
+              <Button variant="ghost" size="sm" className="rounded-full font-sans tracking-wide uppercase text-xs text-zinc-500 hover:text-black hover:bg-zinc-100 gap-2">
+                <LayoutDashboard className="w-4 h-4" strokeWidth={1.5} /> {t.admin}
+              </Button>
             </Link>
             <Link href="/widget" className="hidden md:block">
-              <Button variant="ghost" size="sm" className="rounded-full font-sans tracking-wide uppercase text-xs text-zinc-500 hover:text-black hover:bg-zinc-100">{t.widget}</Button>
+              <Button variant="ghost" size="sm" className="rounded-full font-sans tracking-wide uppercase text-xs text-zinc-500 hover:text-black hover:bg-zinc-100 gap-2">
+                <AppWindow className="w-4 h-4" strokeWidth={1.5} /> {t.widget}
+              </Button>
             </Link>
             <ModeToggle />
           </div>
