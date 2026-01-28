@@ -83,13 +83,16 @@ Deno.serve(async (req) => {
         // STEP 1: GENERATE SMILE IMAGE with Gemini 3 Pro (Nano Banana)
         console.log("Generating Smile Image with Gemini 3 Pro...");
 
+        // 4. Call Google Veo API
+        const apiKey = Deno.env.get('GOOGLE_API_KEY')
+        if (!apiKey) throw new Error("GOOGLE_API_KEY missing")
+
         let sceneImgBase64 = imgBase64; // Default to original
         let sceneImgMimeType = mimeType;
         let generatedScenePath = generation.output_path;
 
-        // Specific API Key for Image/Vision Model
-        const visionApiKey = "AIzaSyCAGpraoO91K3Qu8SAcFEinAEfZFNBf1Ko";
-        const visionEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/nano-banana-pro-preview:generateContent?key=${visionApiKey}`;
+        // Use same key for Vision Model
+        const visionEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/nano-banana-pro-preview:generateContent?key=${apiKey}`;
 
         const analysisSystemPrompt = `
     [System] Enforcing Clinical Landmarks:
@@ -225,8 +228,7 @@ Deno.serve(async (req) => {
         const negativePrompt = "black background, dark background, studio background, black void, morphing face, changing teeth, closing mouth, distortion, cartoon, low quality, glitchy motion, talking, flashing lights, extra limbs, blurry face, flickering teeth, floating objects, static start, frozen face, pause before moving, camera rotation, spinning camera, zoom out, open mouth";
 
         // 4. Call Google Veo API
-        const apiKey = Deno.env.get('GOOGLE_API_KEY')
-        if (!apiKey) throw new Error("GOOGLE_API_KEY missing")
+        // apiKey already retrieved above.
 
         // Endpoint for Veo 3.1
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-fast-generate-preview:predictLongRunning?key=${apiKey}`;
