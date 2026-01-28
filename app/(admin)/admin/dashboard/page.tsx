@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { Users, Sparkles, Video } from "lucide-react";
 import { ExportGenerationsButton } from "@/components/admin/ExportGenerationsButton";
+import { DashboardCharts } from "@/components/admin/DashboardCharts";
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -19,6 +20,16 @@ export default async function DashboardPage() {
         .from("generations")
         .select("*", { count: "exact", head: true })
         .eq("type", "video");
+
+    // Fetch Charts Data (Last 30 Days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { data: chartData } = await supabase
+        .from("generations")
+        .select("created_at, type")
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: true });
 
     // Fetch Recent Activity
     const { data: recentActivity } = await supabase
@@ -58,6 +69,9 @@ export default async function DashboardPage() {
                     <p className="text-4xl font-bold text-primary mt-2">{videoRequests || 0}</p>
                 </div>
             </div>
+
+            {/* Charts Area */}
+            <DashboardCharts data={chartData || []} />
 
             {/* Recent Activity */}
             <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
