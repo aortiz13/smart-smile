@@ -48,10 +48,10 @@ Deno.serve(async (req) => {
         // 3. Prepare Prompts based on Scenarios
         // 3. Prepare Prompts based on Scenarios
         let scenarioPrompt = "";
-        const baseScene = "The subject is ALIVE and MOVING from the very first frame. Dynamic start, no static pause. The smile is wide, prominent, and STABLE, maintaining the exact dental structure and whiteness from the input image. Cinematic vertical video. High quality, photorealistic, 4k. Background sound: emotive music.";
+        const baseScene = "The subject is ALIVE and MOVING slightly from the very first frame. FIXED CAMERA, NO ZOOM, NO ROTATION. The subject faces forward constantly. Lips remain gentle and natural, avoiding talking or opening mouth. The smile is wide, prominent, and STABLE, maintaining the exact dental structure and whiteness from the input image. Cinematic vertical video. High quality, photorealistic, 4k. Background sound: emotive music.";
 
         if (ageRange === '18-30') {
-            scenarioPrompt = `The subject from the input image is already laughing naturally and warmly with friends in a vibrant green park. Continuous movement, head tilting back in joy. ${baseScene}`;
+            scenarioPrompt = `The subject from the input image is already laughing naturally and warmly with friends in a vibrant green park. Gentle head tilting in joy, but camera stays fixed. ${baseScene}`;
         } else if (ageRange === '55+') {
             scenarioPrompt = `The subject from the input image is already smiling and interacting at a warm family celebration. Continuous gentle movement, surrounded by loved ones. ${baseScene}`;
         } else {
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
             scenarioPrompt = `The subject from the input image is already in motion on a stylish urban rooftop terrace. They are holding a drink and chatting naturally. Continuous light activity. ${baseScene}`;
         }
 
-        const negativePrompt = "morphing face, changing teeth, closing mouth, distortion, cartoon, low quality, glitchy motion, talking, flashing lights, extra limbs, blurry face, flickering teeth, floating objects, static start, frozen face, pause before moving";
+        const negativePrompt = "morphing face, changing teeth, closing mouth, distortion, cartoon, low quality, glitchy motion, talking, flashing lights, extra limbs, blurry face, flickering teeth, floating objects, static start, frozen face, pause before moving, camera rotation, spinning camera, zoom out, open mouth";
         // ... (lines 62-139 unchanged) ...
         // 5. Initial Generation Record (Pending)
         const { data: newGen, error: insertError } = await supabase
