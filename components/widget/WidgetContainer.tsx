@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Turnstile from "react-turnstile";
+import { Turnstile } from "@marsidev/react-turnstile";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
 import { Loader2, UploadCloud, Lock, Check, Video, PlayCircle, Sparkles, ScanFace, FileSearch, Wand2, Share2, MessageCircle, Send, Smartphone } from "lucide-react";
@@ -294,9 +294,12 @@ export default function WidgetContainer() {
                             <p className="text-sm text-zinc-500">Por favor completa el captcha para continuar.</p>
                         </div>
                         <Turnstile
-                            sitekey="0x4AAAAAAACUl6BXJSwE0jdk1"
-                            onVerify={(token) => setIsVerified(true)}
-                            theme="auto"
+                            siteKey="0x4AAAAAAACUl6BXJSwE0jdk1"
+                            onSuccess={(token) => setIsVerified(true)}
+                            options={{
+                                size: 'normal',
+                                theme: 'auto',
+                            }}
                         />
                     </div>
                 ) : (
