@@ -84,7 +84,7 @@ export default function Home() {
             {t.title}
           </h2>
 
-          <p className="text-lg md:text-xl font-sans font-light text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-[23px] font-sans font-light text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
             {t.subtitle}
           </p>
         </section>
