@@ -95,14 +95,11 @@ Deno.serve(async (req) => {
         let generatedScenePath = generation.output_path;
 
         const sceneGenerationPrompt = `
-    TASK: Change the background of this image to match the description below.
-    CRITICAL: KEEP THE PERSON'S FACE, HAIR, AND SMILE EXACTLY AS THEY ARE. ONLY CHANGE THE BACKGROUND AND LIGHTING TO MATCH THE SCENE.
-    
-    TARGET SCENE: ${sceneDescription}
-    
-    Subject: The same person as in the input image.
-    Style: Photorealistic, Cinematic, 8k resolution.
-    Frame: 9:16 Vertical Portrait.
+    Subject: The person in the input image.
+    Action: ${ageRange === '18-30' ? 'Laughing naturally' : ageRange === '55+' ? 'Smiling warmly' : 'Smiling casually'}.
+    Location: ${sceneDescription}
+    Style: Photorealistic, Cinematic, 8k resolution, High Quality.
+    Editing Input: Change the background to match the Location description. Keep the person's face, hair, and smile EXACTLY the same. Seamlessly blend the lighting.
     `;
 
         // Use gemini-3-pro-image-preview for Scene Generation
@@ -115,7 +112,7 @@ Deno.serve(async (req) => {
                 body: JSON.stringify({
                     contents: [{
                         parts: [
-                            { text: sceneGenerationPrompt },
+                            { text: `Generate a photorealistic image based on: ${sceneGenerationPrompt}` },
                             { inline_data: { mime_type: mimeType, data: imgBase64 } }
                         ]
                     }]
@@ -149,6 +146,10 @@ Deno.serve(async (req) => {
                     }
                 } else {
                     console.warn("Gemini did not return an image part. Using original image.");
+                    if (part?.text) {
+                        console.log("Gemini Returned TEXT instead:", part.text);
+                    }
+                    console.log("Full Gemini Response:", JSON.stringify(sceneData));
                 }
             } else {
                 console.warn("Scene Generation Failed:", await sceneResponse.text());
