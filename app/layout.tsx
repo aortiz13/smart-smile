@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
-import { DebugBanner } from "@/components/debug/DebugBanner";
+
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <DebugBanner />
+
           {children}
           <Toaster />
         </ThemeProvider>
