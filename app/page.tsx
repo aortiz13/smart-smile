@@ -63,11 +63,7 @@ export default function Home() {
                 <LayoutDashboard className="w-4 h-4" strokeWidth={1.5} /> {t.admin}
               </Button>
             </Link>
-            <Link href="/widget" className="hidden md:block">
-              <Button variant="ghost" size="sm" className="rounded-full font-sans tracking-wide uppercase text-xs text-white/80 hover:text-white hover:bg-white/10 gap-2">
-                <AppWindow className="w-4 h-4" strokeWidth={1.5} /> {t.widget}
-              </Button>
-            </Link>
+
             <ModeToggle />
           </div>
         </div>
