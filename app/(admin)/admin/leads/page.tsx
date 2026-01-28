@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { LeadDetailModal } from "@/components/admin/LeadDetailModal";
 
@@ -48,8 +48,8 @@ export default function LeadsPage() {
         <div className="p-8 space-y-8">
             <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-heading font-bold text-foreground">Gestión de Leads</h2>
-                <button className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-medium hover:bg-secondary/80">
-                    Exportar CSV
+                <button className="flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-medium hover:bg-secondary/80">
+                    <Download className="w-4 h-4 mr-2" strokeWidth={1.5} /> Exportar CSV
                 </button>
             </div>
 
@@ -85,8 +85,8 @@ export default function LeadsPage() {
                                             <td className="px-6 py-4">{lead.phone}</td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${lead.status === 'converted' ? 'bg-green-100 text-green-700' :
-                                                        lead.status === 'contacted' ? 'bg-blue-100 text-blue-700' :
-                                                            'bg-yellow-100 text-yellow-700'
+                                                    lead.status === 'contacted' ? 'bg-blue-100 text-blue-700' :
+                                                        'bg-yellow-100 text-yellow-700'
                                                     }`}>
                                                     {statusLabels[lead.status] || lead.status}
                                                 </span>
@@ -94,9 +94,9 @@ export default function LeadsPage() {
                                             <td className="px-6 py-4">
                                                 <button
                                                     onClick={() => setSelectedLead(lead)}
-                                                    className="text-primary hover:underline font-medium"
+                                                    className="text-primary hover:underline font-medium flex items-center"
                                                 >
-                                                    Ver Detalle
+                                                    <Eye className="w-4 h-4 mr-1" strokeWidth={1.5} /> Ver Detalle
                                                 </button>
                                             </td>
                                         </tr>

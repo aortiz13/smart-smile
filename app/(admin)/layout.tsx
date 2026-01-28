@@ -35,15 +35,15 @@ export default function AdminLayout({
 
                 <nav className="flex-1 p-4 space-y-2">
                     <Link href="/admin/dashboard" className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 text-foreground transition-colors">
-                        <LayoutDashboard size={20} />
+                        <LayoutDashboard size={20} strokeWidth={1.5} />
                         <span>Dashboard</span>
                     </Link>
                     <Link href="/admin/leads" className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 text-foreground transition-colors">
-                        <Users size={20} />
+                        <Users size={20} strokeWidth={1.5} />
                         <span>Leads</span>
                     </Link>
                     <Link href="/admin/settings" className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 text-foreground transition-colors">
-                        <Settings size={20} />
+                        <Settings size={20} strokeWidth={1.5} />
                         <span>Configuración</span>
                     </Link>
                 </nav>
@@ -53,7 +53,7 @@ export default function AdminLayout({
                         onClick={handleLogout}
                         className="flex items-center gap-3 p-3 rounded-lg hover:bg-destructive/10 text-destructive w-full transition-colors font-medium"
                     >
-                        <LogOut size={20} />
+                        <LogOut size={20} strokeWidth={1.5} />
                         <span>Cerrar Sesión</span>
                     </button>
                 </div>

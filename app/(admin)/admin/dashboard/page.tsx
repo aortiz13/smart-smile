@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { Users, Sparkles, Video } from "lucide-react";
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -32,15 +33,24 @@ export default async function DashboardPage() {
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
-                    <h3 className="text-sm font-medium text-muted-foreground">Total Leads</h3>
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium text-muted-foreground">Total Leads</h3>
+                        <Users className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+                    </div>
                     <p className="text-4xl font-bold text-primary mt-2">{totalLeads || 0}</p>
                 </div>
                 <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
-                    <h3 className="text-sm font-medium text-muted-foreground">Generaciones de Smile</h3>
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium text-muted-foreground">Generaciones de Smile</h3>
+                        <Sparkles className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+                    </div>
                     <p className="text-4xl font-bold text-primary mt-2">{smileGenerations || 0}</p>
                 </div>
                 <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
-                    <h3 className="text-sm font-medium text-muted-foreground">Solicitudes de Video</h3>
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium text-muted-foreground">Solicitudes de Video</h3>
+                        <Video className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+                    </div>
                     <p className="text-4xl font-bold text-primary mt-2">{videoRequests || 0}</p>
                 </div>
             </div>

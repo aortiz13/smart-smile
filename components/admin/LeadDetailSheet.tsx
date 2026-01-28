@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, Calendar, User, ImageIcon, MonitorPlay } from "lucide-react";
+import { Mail, Phone, Calendar, User, ImageIcon, MonitorPlay, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import { BeforeAfterSlider } from "@/components/widget/BeforeAfterSlider";
 import { Button } from "@/components/ui/button";
@@ -64,7 +64,7 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
             <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
                 <SheetHeader className="mb-6">
                     <SheetTitle className="text-2xl font-bold flex items-center gap-2">
-                        <User className="text-primary w-6 h-6" />
+                        <User className="text-primary w-6 h-6" strokeWidth={1.5} />
                         {lead.name}
                     </SheetTitle>
                     <SheetDescription>
@@ -77,7 +77,7 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
                     <div className="flex justify-between items-center bg-muted/30 p-4 rounded-lg">
                         <StatusBadge status={lead.status} />
                         <span className="text-xs text-muted-foreground font-mono flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
+                            <Calendar className="w-3 h-3" strokeWidth={1.5} />
                             {new Date(lead.created_at).toLocaleDateString()}
                         </span>
                     </div>
@@ -88,7 +88,7 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
                         <div className="grid gap-3">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-full text-primary">
-                                    <Mail className="w-4 h-4" />
+                                    <Mail className="w-4 h-4" strokeWidth={1.5} />
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-xs text-muted-foreground">Correo Electrónico</p>
@@ -99,7 +99,7 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
                             </div>
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-full text-primary">
-                                    <Phone className="w-4 h-4" />
+                                    <Phone className="w-4 h-4" strokeWidth={1.5} />
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-xs text-muted-foreground">Teléfono</p>
@@ -116,7 +116,7 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
                     {/* Result Generation */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2 flex items-center gap-2">
-                            <ImageIcon className="w-4 h-4" />
+                            <ImageIcon className="w-4 h-4" strokeWidth={1.5} />
                             Resultado Generado
                         </h3>
 
@@ -143,7 +143,7 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
                             </div>
                         ) : (
                             <div className="p-8 border border-dashed rounded-xl text-center text-muted-foreground bg-muted/10">
-                                <MonitorPlay className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                                <MonitorPlay className="w-8 h-8 mx-auto mb-2 opacity-20" strokeWidth={1.5} />
                                 <p>No hay generación de imagen asociada a este lead.</p>
                             </div>
                         )}
@@ -151,7 +151,9 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
 
                     {/* Action Buttons */}
                     <div className="flex gap-2 pt-4">
-                        <Button className="flex-1" variant="default">Contactar por WhatsApp</Button>
+                        <Button className="flex-1" variant="default">
+                            <MessageCircle className="w-4 h-4 mr-2" strokeWidth={1.5} /> Contactar por WhatsApp
+                        </Button>
                         <Button className="flex-1" variant="outline">Marcar Contactado</Button>
                     </div>
 
