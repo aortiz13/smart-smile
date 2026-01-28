@@ -72,82 +72,62 @@ const safeParseJSON = (text: string) => {
 
 // Gatekeeper
 export const validateImageStrict = async (base64Image: string): Promise<{ success: boolean; data?: { isValid: boolean; reason: string }; error?: string }> => {
-    console.log("[Gemini] ENTRY: validateImageStrict called. Image length:", base64Image?.length);
+    console.log("[Gemini] ENTRY: validateImageStrict called (Edge Function Delegate).");
     if (!base64Image) {
         return { success: false, error: "Error: Imagen vacía o corrupta." };
     }
 
     try {
-        const apiKey = process.env.API_KEY;
-        if (!apiKey) {
-            console.error("[Gemini Gatekeeper] Missing API_KEY");
-            return { success: false, error: "Error de configuración del servidor (API KEY missing)." };
-        }
-
-        const ai = new GoogleGenAI({ apiKey });
-        const mimeType = getMimeType(base64Image);
         const data = stripBase64Prefix(base64Image);
 
-        const prompt = `
-        You are a Strict Biometric Validator for a dental AI app. Analyze the image and determine if it is suitable for clinical smile design.
-        
-        THE RULES (Rejection Criteria):
-        1. Non-Human: Reject cars, animals, cartoons, landscapes, objects. MUST BE A REAL HUMAN.
-        2. No Face: Reject if face is not clearly visible or too far away.
-        3. Obstruction: Reject if mouth is covered (hands, mask, phone).
-        4. Angle: Reject extreme profiles.
-        5. Quality: Reject if too dark, too blurry, or pixelated.
-    
-        OUTPUT REQUIREMENT:
-        Return ONLY a JSON object.
-        {
-          "is_valid": boolean,
-          "rejection_reason": "string (Max 6 words, in Spanish)"
-        }
-      `;
+        // Delegate to Supabase Edge Function
+        // This keeps the API KEY secure in Supabase Secrets
+        const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; // Or Service Role if prefered server-side
 
-        const response = await ai.models.generateContent({
-            model: VALIDATION_MODEL,
-            contents: {
-                parts: [
-                    { inlineData: { mimeType, data } },
-                    { text: prompt }
-                ]
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+            console.error("Missing Supabase Configuration in Next.js Server Env");
+            return { success: false, error: "Configuration Error: Supabase URL/Key missing." };
+        }
+
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-face`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json'
             },
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        is_valid: { type: Type.BOOLEAN },
-                        rejection_reason: { type: Type.STRING }
-                    },
-                    required: ["is_valid", "rejection_reason"]
-                }
-            }
+            body: JSON.stringify({
+                image_base64: data,
+                mode: 'validate'
+            })
         });
 
-        const text = extractText(response);
-        console.log("[Gemini] Gatekeeper Response Text:", text.slice(0, 50));
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error("Edge Function Error:", errText);
+            return { success: false, error: `Error del servidor: ${errText}` };
+        }
 
-        if (text) {
-            const result = safeParseJSON(text);
-            if (!result) return { success: false, error: "Error procesando la respuesta de IA." };
+        const resultKey = await response.json();
+        console.log("[Gemini] Edge Function Response:", resultKey);
 
+        if (resultKey) {
+            // Check keys returned by the specific 'validate' prompt
+            // "is_valid": boolean, "rejection_reason": string
             return {
                 success: true,
                 data: {
-                    isValid: !!result.is_valid,
-                    reason: result.rejection_reason || ""
+                    isValid: !!resultKey.is_valid,
+                    reason: resultKey.rejection_reason || ""
                 }
             };
         }
 
-        return { success: false, error: "Error de validación. Intenta otra foto." };
+        return { success: false, error: "Respuesta inválida del analizador." };
 
     } catch (error: any) {
-        console.error("[Gatekeeper] Critical Error Details:", JSON.stringify(error, null, 2));
-        return { success: false, error: `Error de Validación: ${error.message?.slice(0, 100) || "Error desconocido"}` };
+        console.error("[Gatekeeper] Delegate Error:", error);
+        return { success: false, error: `Error de Validación: ${error.message}` };
     }
 };
 
