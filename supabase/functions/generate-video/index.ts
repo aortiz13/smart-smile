@@ -142,9 +142,6 @@ Deno.serve(async (req) => {
                             { inline_data: { mime_type: mimeType, data: imgBase64 } }
                         ]
                     }],
-                    generationConfig: {
-                        response_mime_type: "application/json"
-                    }
                 })
             });
 
