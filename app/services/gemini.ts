@@ -242,7 +242,7 @@ export const generateSmileVariation = async (
     variationPrompt: string,
     aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1",
     userId: string = "anon"
-): Promise<string> => {
+): Promise<{ success: boolean; data?: string; error?: string }> => {
     console.log("[Gemini] generateSmileVariation STARTED (Edge Function Delegate)");
 
     try {
@@ -279,15 +279,15 @@ export const generateSmileVariation = async (
         console.log("[Gemini] Edge Function Response:", result);
 
         if (result.success && result.public_url) {
-            return result.public_url;
+            return { success: true, data: result.public_url };
         }
 
-        if (result.error) throw new Error(result.error);
-        throw new Error("Failed to generate smile variation.");
+        if (result.error) return { success: false, error: result.error };
+        return { success: false, error: "Failed to generate smile variation." };
 
     } catch (criticalGenError: any) {
         console.error("[Gemini] FATAL ERROR in generateSmileVariation:", criticalGenError);
-        throw new Error(`Error Fatal Generando Imagen: ${criticalGenError.message}`);
+        return { success: false, error: `Error Fatal Generando Imagen: ${criticalGenError.message}` };
     }
 };
 

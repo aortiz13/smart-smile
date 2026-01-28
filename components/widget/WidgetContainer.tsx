@@ -157,9 +157,13 @@ export default function WidgetContainer() {
                 ${naturalVariation.prompt_data.Refining_Details || ''}
             `;
 
-            const imageUrl = await generateSmileVariation(base64, prompt, "9:16", currentUserId);
+            const genResult = await generateSmileVariation(base64, prompt, "9:16", currentUserId);
 
-            setGeneratedImage(imageUrl);
+            if (!genResult.success || !genResult.data) {
+                throw new Error(genResult.error || "Fallo en la generación de sonrisa");
+            }
+
+            setGeneratedImage(genResult.data);
             setProcessStatus('complete');
 
             // Allow a brief moment for the 'complete' state to show before transitioning
